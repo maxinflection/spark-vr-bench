@@ -1,0 +1,85 @@
+# rental-spec for benchmarks-<CAMPAIGN>: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
+#
+# Hardware (2026-05-15): Runcrate RTXPro6000 ×2 (auto-deploy). The bd notes
+# (2026-05-07) originally targeted RTXPro6000 ×4 SKU `upbeat-haibt-rtxpro6000x4-fac3`
+# at $7.88/hr; that x4 SKU is gone from the catalog as of 2026-05-15 inventory.
+# RTXPro6000 ×2 in KC at $3.94/hr (sku `jolly-maxwell-rtxpro6000x2-065d`,
+# subject to churn — auto-deploy by {gpu_type, gpu_count} rather than pinning
+# instance_type_id, per memory feedback_runcrate_inventory_scan.md).
+#
+# Math: 235B AWQ-INT4 weights ≈ 116 GB. TP=2 split: ≈ 58 GB/GPU. RTXPro6000
+# Blackwell = 96 GB/GPU. Free ≈ 38 GB/GPU for KV + activations — plenty for
+# Pool B short-context lm-eval graders.
+#
+# B200x1 was probed via auto-deploy 2026-05-15: returned 500
+# ("No availability found for 1x B200"). B200x2 was 3× the price ($11.66/hr)
+# with similar weight-split arithmetic but better KV headroom — overkill for
+# Pool B (no Pool A on this rental per <CAMPAIGN> abbreviated profile).
+#
+# Operator-set field before launch:
+#   rental_host — IP of the auto-deployed RTXPro6000 ×2 box.
+
+model_id: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# AWQ-INT4 quantization. QuantTrio packages with `quant_method=awq` in
+# config.json — pass --quantization awq.
+quant: awq
+
+# TP=2 weight-shard. --enable-expert-parallel MUST stay off at TP=2 per
+# QuantTrio model card (MoE EP routing overhead exceeds benefit at 2 GPUs).
+tensor_parallel_size: 2
+
+# 128K — capped at the floor on TP=2 due to KV-cache budget. Math:
+# 235B AWQ-INT4 weights ≈ 116 GB → 58 GB/GPU. RTXPro6000 has 96 GB/GPU,
+# leaving ~38 GB free per GPU for KV. A single 256K seq needs ~48 GB/GPU
+# of KV at bf16 (overflows 38 GB free) — hence 128K cap on this SKU.
+# Per memory feedback_context_length_policy_2026-05-18: 256K is the policy
+# target when GPU+KV fits, 128K is the absolute floor. Upgrading to
+# RTXPro6000 ×4 would unblock 256K; see memory
+# runcrate-sku-mapping-for-benchmarks-rlp-4-11 for the SKU-vs-context tradeoff.
+# Native model context is 256k via YaRN — gate is the rental, not the model.
+max_model_len: 131072
+
+vllm_min_version: "0.21.0"
+
+# enable_thinking=FALSE matches the Qwen3 family convention (<CAMPAIGN> / <CAMPAIGN> /
+# <CAMPAIGN> all use false; bd memory qwen3-family-enable-thinking-false-convention).
+# The first attempt at <CAMPAIGN> (2026-05-15) set this to true because the model
+# is the "Thinking" variant — that caused 0/3 Pool B benches × ~$46 wasted.
+#
+# Why: the reasoning training is baked into the model WEIGHTS regardless of
+# this flag. The flag only controls whether the model emits explicit
+# <think>...</think> sentinel structure. With reasoning_parser=qwen3 +
+# enable_thinking=true, vLLM splits at the sentinels into response.reasoning
+# (think text) and response.content (post-think answer); if max_gen_toks
+# hits during the think section, response.content = None, which Pool B
+# scorers (humaneval+ filter, ifeval scorer, bigcodebench sanitize) all
+# crash on. With enable_thinking=false the model still reasons internally
+# but emits a normal string response Pool B can grade.
+#
+# --reasoning-parser qwen3 still safe to leave on (with thinking disabled,
+# the parser has nothing to strip; vLLM returns content normally). Matches
+# <CAMPAIGN> spec exactly. See docs/research/<CAMPAIGN>-pool-b-postmortem-2026-05-15.md.
+#
+# --gdn-prefill-backend triton: Qwen3 architecture needs the Triton GDN
+# attention prefill backend on vLLM ≥0.20 (<CAMPAIGN> found this; same family).
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  - --reasoning-parser
+  - qwen3
+  # Tool-call parser + auto-choice (bd <ISSUE> 2026-05-19, REVISED 2026-05-20):
+  # qwen3_xml → hermes after bd <ISSUE> EB shakedown empirically showed
+  # Thinking-2507 emits Hermes-style <tool_call>{json}</tool_call> wrappers.
+  # qwen3_xml is scoped to Qwen3-Coder (different XML-element syntax) per
+  # vLLM 0.21 docs. See 256k-thinking-on spec for full rationale + evidence.
+  - --tool-call-parser
+  - hermes
+  - --enable-auto-tool-choice
+
+local_port: 8002  # avoid collision with <CAMPAIGN>/<CAMPAIGN> tunnels if still around

@@ -1,0 +1,74 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Gemma-4-31B Dense NVFP4 on Runcrate RTXPro6000 ×1
+#
+# Per bd memory runcrate-sku-mapping-for-benchmarks-rlp-4-11: target SKU
+# agitated-joliot-rtxpro6000-3fdb (KC) primary, B300 fallback. We pick the
+# Beltsville sibling youthful-bose-rtxpro6000-a499 here so this spec runs in
+# parallel with <CAMPAIGN> (which holds the KC slot at the time of writing) and
+# spreads region risk.
+#
+# Operator-set fields before launch:
+#   rental_host — hostname or IP of the provisioned RTXPro6000 box
+
+model_id: nvidia/Gemma-4-31B-IT-NVFP4
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# NVFP4 path requires --quantization nvfp4 explicitly. Validated CUTLASS
+# backend on SM120 in the <CAMPAIGN> (Gemma-4-26B-A4B-NVFP4) smoke 2026-05-09 —
+# pre-built kernels, no FlashInfer JIT, none of the <CAMPAIGN> toolchain dance.
+quant: nvfp4
+
+# Per spike: --tensor-parallel-size 1, NO --enable-expert-parallel (vLLM
+# #32826 — Marlin path on SM120 hits FlashInfer JIT compile failures even
+# for dense FP4 when EP is on).
+tensor_parallel_size: 1
+# 256K target — Gemma-4 31B native max_position_embeddings is 262144 (bd <ISSUE>
+# 2026-05-18 HF config.json check). Gemma-4 uses sliding-window attention
+# (sliding_window=1024) so per-seq KV is bounded by the window, not the
+# full max_model_len — KV pool sizing on the 96 GB Blackwell is trivially
+# accommodated regardless of context cap. Per memory
+# feedback_context_length_policy_2026-05-18: target 256K, floor 128K.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# Gemma-4 is dense; the MoE-specific FlashInfer FP4 env vars
+# (VLLM_USE_FLASHINFER_MOE_FP4, VLLM_FLASHINFER_MOE_BACKEND) belong on
+# <CAMPAIGN>/<CAMPAIGN>/<CAMPAIGN> (the A*B variants), not here.
+#
+# VLLM_NVFP4_GEMM_BACKEND=marlin (bd <ISSUE> 2026-05-18 workaround): vLLM 0.21
+# routes NVFP4 GEMM through FlashInfer's get_gemm_sm120_module_cutlass_fp4
+# JIT compile, which fails on our cuda-toolkit-13-0 with "No supported CUDA
+# architectures found for major versions [12]". Marlin is vLLM's bundled
+# FP4 GEMM kernel and ships without JIT. The 2026-05-07 spike (memory
+# runcrate-rtx-pro-6000-sm120-nvfp4-spike-pass) used vLLM 0.20.1 prebuilt
+# wheels (no JIT path) and selected CUTLASS naturally — that path is gone
+# in 0.21. Once vLLM ships a 0.22+ with SM120 prebuilt FP4 (bd <ISSUE> research
+# agent will identify), revert this env var to re-enable the perf-preferred
+# CUTLASS path.
+vllm_env:
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+# --attention-backend TRITON_ATTN (bd <ISSUE> 2026-05-18, paired with marlin
+# env var): vLLM 0.21 has a Gemma-4 31B head_size mismatch on SM120 when
+# FlashInfer attention is selected (vllm#40677). Forcing TRITON_ATTN
+# sidesteps the FlashInfer attention path entirely. The two fixes together
+# (Marlin GEMM + Triton attention) are the documented workaround for
+# Gemma-4-NVFP4 on RTXPro6000 until the FlashInfer SM120 patches land.
+vllm_args:
+  - --attention-backend
+  - TRITON_ATTN
+  # Tool-call parser + auto-choice (bd <ISSUE> 2026-05-19): required for any agent
+  # harness that calls the endpoint with tool_choice=auto (Pool A cybergym,
+  # ExploitBench). gemma4 parser ships in vLLM 0.21 (gemma4_tool_parser.py);
+  # see <CAMPAIGN> (Gemma-4-26B-A4B) sibling spec for the cybergym caveat — the
+  # parser doesn't rescue small-MoE OpenHands runs (bd <ISSUE> follow-up).
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - gemma4
+
+# Run on a different harness port than <CAMPAIGN> (8000) — both rentals tunnel
+# back to the same eval-harness EC2 box, so the port has to be unique per
+# concurrent rental. run-pool-b.sh's TLS-or-localhost guard accepts any
+# http://127.0.0.1:* URL.
+local_port: 8001

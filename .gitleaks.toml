@@ -1,0 +1,50 @@
+# .gitleaks.toml — secret-scanning config (bd <ISSUE>).
+#
+# Used in three places:
+#   1. Local pre-commit hook (.pre-commit-config.yaml) on the internal clone.
+#   2. The .6 gate inside build-public-mirror.sh, run against the PRODUCED
+#      public tree — the load-bearing check immediately before the human-gated
+#      first push (<ISSUE> / <ISSUE>).
+#   3. The public repo's CI (.github/workflows/gitleaks.yml, <ISSUE>).
+#
+# Extends gitleaks' default ruleset (AWS keys, generic API tokens, private keys,
+# etc.) and adds an allowlist tuned for THIS repo so non-secret internal
+# references and post-redaction placeholders do not trip the gate.
+
+title = "benchmarks gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Non-secret internal references, doc placeholders, and post-redaction tokens"
+
+regexes = [
+  # Redaction placeholders emitted by public-mirror.rules, e.g. <AWS_ACCOUNT_ID>.
+  '''<[A-Z][A-Z0-9_]+>''',
+  # SSM parameter NAMES — paths, not secret values (the values live in SSM).
+  '''/sandbox/api-keys/[a-z0-9-]+''',
+  # Canonical's public Ubuntu-AMI owner account id (not ours, not a secret).
+  '''\b099720109477\b''',
+  # Documentation placeholder instance id.
+  '''\bi-0abc123def456\b''',
+  # Project-internal issue-tracker refs (epic-prefixed campaign/issue ids).
+  '''\bbenchmarks-[a-z0-9]+(\.[0-9]+)?\b''',
+]
+
+# Model-serving specs carry HF repo ids and vLLM flags — config, never secrets.
+paths = [
+  '''(^|/)rental-specs/.*\.ya?ml$''',
+  '''(^|/)specs/.*\.ya?ml$''',
+]
+
+# bd issue short-codes and Runcrate SKU codenames read like high-entropy tokens
+# to the generic-secret rule; exempt the literal forms we actually use.
+stopwords = [
+  "runcrate",
+  "rtxpro6000",
+  "nemotron",
+  "qwen",
+  "gemma",
+  "deepseek",
+]

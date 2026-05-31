@@ -1,0 +1,208 @@
+# rental-spec for benchmarks-<CAMPAIGN>: DeepSeek-V4-Flash on Runcrate B300 ×1
+#
+# This is the B300 ×1 single-GPU variant. The default firing path per bd <ISSUE>
+# (closed 2026-05-21) — Runcrate SKU `kind-easley-b300-ac1a` Helsinki at
+# $8.14/hr was in-stock at the 2026-05-15 inventory snapshot. Cheapest
+# viable mainline-supported SKU for V4-Flash.
+#
+# Companion specs (NOT YET WRITTEN; file follow-ups as inventory allows):
+#   - deepseek-v4-flash-b200x2.yaml — TP=2 on B200 ×2 once inventory returns
+#   - deepseek-v4-flash-b200x4.yaml — TP=4 + --enable-expert-parallel,
+#                                     the upstream recipe's `single_node_tep`
+#                                     default
+#   - deepseek-v4-flash-h200x4.yaml — Hopper fallback at MTP=1
+#
+# Hardware: Runcrate **B300 ×1** (auto-deploy by {gpu_type=B300, gpu_count=1}).
+# Fallback: defer rather than substitute. If B300 ×1 is gone at provision
+# time and B200 ×2/×4 has returned, use the appropriate companion spec —
+# do NOT silently switch SKUs (TP/EP topology differs).
+#
+# Math at the deployed quant (FP4 MoE experts + FP8 elsewhere, FP8 KV cache):
+#   Recipe-stated VRAM floor: 170 GB (weights 158 GB + runtime overhead).
+#   B300 ×1: 288 GB HBM3e.
+#   Free for KV + slack: 288 − 170 ≈ 118 GB.
+#   Per-token KV (MLA, num_kv_heads=1, head_dim=512, 43 layers, FP8):
+#     1 × 512 × 2 (K+V) × 1 byte × 43 = ~44 KB/token
+#   256K context single-stream agentic: ~11 GB → ~107 GB headroom. Comfortable.
+#   1M context (Think-Max): ~44 GB → ~74 GB headroom. Still fits.
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed B300 ×1 box.
+#
+# References:
+#   docs/research/deepseek-v4-flash-vllm-b200-readiness-2026-05-21.md (bd <ISSUE>)
+#   recipes.vllm.ai/deepseek-ai/DeepSeek-V4-Flash  (canonical upstream recipe)
+
+model_id: deepseek-ai/DeepSeek-V4-Flash
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# Native quant from the HF repo: FP4 MoE experts + FP8 elsewhere. No
+# --quantization override; vLLM 0.21+ dispatches the mixed quant directly
+# on SM100/SM103 via DeepGEMM MegaMoE. The `fp8` value here is the
+# checkpoint's primary quant method (config.json: quant_method=fp8 with
+# expert_dtype=fp4); rental-vllm-up emits --quantization fp8 which is
+# correct for the non-expert tensors. The FP4 expert dispatch is driven
+# by the model's own config metadata + --moe-backend, not a CLI quant flag.
+quant: fp8
+
+# TP=1: single B300 GPU. No expert parallelism (TP=1 implies single device,
+# can't EP). If we later move to B200 ×2/×4, use a companion spec with TP=2
+# (no EP) or TP=4 + --enable-expert-parallel (recipe's single_node_tep).
+tensor_parallel_size: 1
+
+# 256K target per feedback_context_length_policy_2026-05-18. V4-Flash
+# native max is 1M (YaRN factor 16 from 65536 base, per config.json
+# max_position_embeddings: 1048576). For Think-Max mode the model card
+# recommends ≥384K; if we add a Think-Max screening cell later, bump to
+# 393216 or higher and re-check KV headroom math above.
+max_model_len: 262144
+
+# vLLM 0.21.0 (released 2026-05-15) is the floor: adds DeepSeek V4 pipeline
+# parallelism (#41694), disagg-serving fixes (#41957), and the FlashInfer
+# CUTLASS MXFP4-MXFP8 MoE fix (#42089). v0.20.0 added the core V4 support
+# (#40860 merged 2026-04-27) but 0.21.0 is the first release with all the
+# stabilization fixes. Per the upstream recipe min: 0.20.0; we pin tighter
+# for safety.
+vllm_min_version: "0.21.0"
+
+# Env vars per the upstream recipe `base_env`. The 1M-context engine
+# initialization (compiling cudagraphs, allocating KV pages, autotuning
+# FlashInfer) exceeds the vLLM default ENGINE_READY timeout of 600 s.
+# Recipe sets 3600 s.
+#
+# DO NOT set VLLM_NVFP4_GEMM_BACKEND / VLLM_USE_FLASHINFER_MOE_FP4 /
+# VLLM_FLASHINFER_MOE_BACKEND — those are SM120 (consumer Blackwell)
+# JIT-vs-CUDA workarounds from the nemotron NVFP4 spec. B300 has prebuilt
+# SM103 kernels in vLLM 0.20+; the workaround paths would be wrong here.
+vllm_env:
+  VLLM_ENGINE_READY_TIMEOUT_S: "3600"
+  # DEBUGGING HISTORY (2026-05-21 V4-Flash bringup on B300 ×1):
+  #
+  # V4-Flash uses FP8 block-scaled weights with UE8M0 scale format
+  # (`scale_fmt: ue8m0` per config.json). vLLM 0.21 has FOUR candidate
+  # backends for the dense FP8 block-scaled MM:
+  #   - DeepGemmFp8BlockScaledMMKernel    — JIT-compiled CUDA kernels
+  #   - CutlassFp8BlockScaledMMKernel     — vLLM CUTLASS kernels
+  #   - MarlinFP8ScaledMMLinearKernel     — Marlin INT4/INT8 kernels
+  #   - TritonFp8BlockScaledMMKernel      — pure-Triton fallback
+  #
+  # Empirically (runs 3-7), three of the four FAIL on V4-Flash's UE8M0:
+  #   - CUTLASS:  "Not yet supported ScalarType 44" (run 6)
+  #   - Triton:   KeyError: 'float8_e8m0fnu'        (run 7)
+  #   - Marlin:   silently passes via can_implement() = False
+  # Only DeepGEMM has UE8M0 support, but on NVCC 12.8 it silently fails
+  # to compile the UE8M0 packing kernel → "Corrupted JIT cache directory"
+  # (runs 3-4). With NVCC 12.9 installed out-of-band (apt install
+  # cuda-toolkit-12-9 + relink /usr/local/cuda), the same root cause that
+  # broke FlashInfer fp4_quantization_103 ("nvcc fatal: Unsupported gpu
+  # architecture 'compute_103a'") should be fixed for DeepGEMM too.
+  #
+  # So: keeping NVCC 12.9 + clearing the JIT cache, we re-enable DeepGEMM
+  # (no VLLM_USE_DEEP_GEMM=0) so DeepGEMM is back at the top of the
+  # priority list. Expected: DeepGEMM compiles the UE8M0 packing kernel
+  # cleanly on NVCC 12.9 + SM103a, weight processing succeeds, engine
+  # init completes.
+  #
+  # If DeepGEMM with NVCC 12.9 ALSO fails: V4-Flash on B300 ×1 is
+  # fundamentally blocked at this vLLM version; pivot to B300 ×8
+  # (recipe-canonical TP+EP path with MegaMoE) at $63.32/hr.
+
+vllm_args:
+  # Core recipe baseline (base_args in upstream YAML):
+  - --trust-remote-code
+  - --kv-cache-dtype
+  - fp8
+  - --block-size
+  - "256"
+
+  # Blackwell hardware override (hardware_overrides.blackwell.extra_args):
+  # FP4 indexer cache uses the V4-specific indexer KV layout in FP4.
+  - --attention_config.use_fp4_indexer_cache=True
+
+  # NOTE: The recipe specifies `--moe-backend deep_gemm_mega_moe` for
+  # Blackwell, but per vllm/model_executor/models/deepseek_v4.py:723-731,
+  # MegaMoE REQUIRES --enable-expert-parallel which in turn requires
+  # multi-GPU (TP > 1). At TP=1 single-B300 we must NOT specify
+  # deep_gemm_mega_moe — that raises NotImplementedError at engine init.
+  #
+  # Live confirmation 2026-05-21T04:57Z: serving with `--moe-backend
+  # deep_gemm_mega_moe` at TP=1 fails immediately with:
+  #   "DeepSeek V4 MegaMoE currently requires expert parallel. Enable
+  #    it with --enable-expert-parallel, or pick a different moe backend."
+  #
+  # Available backends (vllm/config/kernel.py:111): auto, triton, deep_gemm,
+  # deep_gemm_mega_moe, cutlass, flashinfer_trtllm, flashinfer_cutlass,
+  # flashinfer_cutedsl, marlin, humming, triton_unfused, aiter, emulation.
+  #
+  # We omit --moe-backend → vLLM defaults to "auto" which picks the
+  # best available backend for the (hardware, expert_dtype) combo. On
+  # B300 SM103 + FP4 experts the auto-pick should choose one of the
+  # NvFp4MoeBackend variants (flashinfer_trtllm / flashinfer_cutlass /
+  # marlin) per vllm/model_executor/layers/fused_moe/oracle/nvfp4.py.
+  #
+  # For multi-GPU rentals (B200 ×4/×8, B300 ×8 baremetal), use a
+  # companion spec that adds back:
+  #   - --moe-backend, deep_gemm_mega_moe
+  #   - --enable-expert-parallel
+  # to match the recipe's `single_node_tep` default.
+
+  # Hybrid KV manager required for CSA+HCA+sliding-window attention layout.
+  # V4-Flash uses three KV tracks (Compressed Sparse Attention long-range,
+  # Heavily Compressed Attention mid-range, 128-token sliding window local);
+  # vLLM's hybrid KV manager schedules pages across them. Default behavior
+  # in vLLM 0.21 disables the hybrid manager for compatibility — V4-Flash
+  # needs it explicitly enabled.
+  - --no-disable-hybrid-kv-cache-manager
+
+  # NOTE: NOT setting --no-enable-flashinfer-autotune. That flag is in the
+  # recipe's strategy_overrides.single_node_tp (which targets 8-GPU pure-TP
+  # at TP=8, not our TP=1). At TP=1 single-GPU we keep the model-default
+  # flashinfer_autotune=true (adds ~1-2 min to engine init for kernel tuning,
+  # better steady-state throughput).
+
+  # Our convention; not in recipe. Prefix caching across agentic turns
+  # cuts effective per-turn input tokens on long Pool A sessions.
+  - --enable-prefix-caching
+
+  # --enforce-eager: disable torch.compile + CUDA graphs.
+  # Live failure 2026-05-21T05:33Z (run 5 after NVCC 12.9 + VLLM_USE_DEEP_GEMM=0):
+  # `torch._inductor.exc.InductorError: AssertionError: auto_functionalized
+  # was not removed` during _initialize_kv_caches → determine_available_memory.
+  # This is a torch.compile/inductor internal assertion failing on V4-Flash's
+  # custom ops (deepseek_v4_attention, sparse_attn_indexer, etc.) — likely
+  # a known issue with the V4 model + inductor's decompose_auto_functionalized
+  # pass. Workaround: skip torch.compile, run in eager mode.
+  # Trade-off: ~30-50% lower per-token throughput (no CUDA graph capture),
+  # acceptable for screening. Revisit if perf matters and an upstream fix lands.
+  - --enforce-eager
+
+  # Tool-call + reasoning parsers — V4-Flash family is `deepseek_v4`,
+  # NOT deepseek_v3 (which uses different JSON tool boundaries) or
+  # deepseek_r1. V4 uses DSML (DeepSeek Markup Language) boundary tokens.
+  # Per upstream recipe features.tool_calling.args + features.reasoning.args.
+  #
+  # Known caveat (vllm-project/vllm#41240): the deepseek_v4 tool parser is
+  # a thin wrapper over the V3.2 parser and misses some DSML edge cases —
+  # numeric/bool/array/object args returned as strings. Watch for type
+  # coercion issues in tool-call outputs during the smoke; may need a
+  # patch similar to scripts/patches/openhands_*.
+  - --tokenizer-mode
+  - deepseek_v4
+  - --reasoning-parser
+  - deepseek_v4
+  - --tool-call-parser
+  - deepseek_v4
+  - --enable-auto-tool-choice
+
+  # MTP intentionally DISABLED per battery convention (<CAMPAIGN> ticket §DO NOT).
+  # The model ships an MTP head (num_nextn_predict_layers: 1) and the recipe
+  # default enables --speculative_config method=mtp,num_speculative_tokens=2,
+  # but the screening profile wants apples-to-apples non-spec generation.
+  # To re-enable for a perf-comparison cell, append:
+  #   --speculative_config '{"method":"mtp","num_speculative_tokens":2}'  # B*
+  #   --speculative_config '{"method":"mtp","num_speculative_tokens":1}'  # H*
+
+# SSH-tunnel local port on harness. 8001-8004 are used by other rlp.* specs;
+# 8005 is free.
+local_port: 8005

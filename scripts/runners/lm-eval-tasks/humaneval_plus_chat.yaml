@@ -1,0 +1,52 @@
+# humaneval_plus_chat — chat-aware no-prefill humaneval+ task for Pool B.
+#
+# Replaces humaneval_plus_instruct for our use case (<CAMPAIGN>): the upstream
+# *_instruct variants rely on `gen_prefix` (assistant-message prefill) which
+# Bedrock Anthropic Opus 4.7 explicitly rejects ("This model does not
+# support assistant message prefill"). This config asks for the function in
+# a single user message and extracts code from the model's response via a
+# regex filter (see utils.build_predictions_extract_code).
+#
+# Loaded via `--include_path /opt/benchmarks/scripts/runners/lm-eval-tasks`.
+
+task: humaneval_plus_chat
+dataset_path: evalplus/humanevalplus
+unsafe_code: true
+output_type: generate_until
+test_split: test
+doc_to_text: |
+  Complete the following Python function. Return ONLY the complete function
+  (signature, docstring, and body) inside a single Python code block. Do not
+  include test cases, usage examples, or commentary outside the code block.
+
+  ```python
+  {{prompt}}
+  ```
+doc_to_target: "{{test}}\ncheck({{entry_point}})"
+metric_list:
+  - metric: !function utils.pass_at_k
+    aggregation: mean
+    higher_is_better: true
+    k: [1]
+generation_kwargs:
+  # 16384 (was 2048 → 8192 → 16384) — reasoning-mode models need budget for
+  # both the think block AND the final code emission. Lifts from 8192 (bd <ISSUE>
+  # 2026-05-24): Qwen3-235B-A22B-Thinking-2507 averages ~3,800 tokens per HE+
+  # sample, and 13% of samples were truncating to null_content at the 8192
+  # cap (<CAMPAIGN>-poolB-thinkingon-2026-05-23 confirmed deflated 0.805 vs
+  # ~0.93 truncation-adjusted ceiling). 16384 matches BCB-H's
+  # VLLM_BCB_MAX_TOKENS default — uniform across Pool B for thinking models.
+  # Frontier models also benefit since the cap binds only on hard problems
+  # they'd internally deliberate on. Non-reasoning models emit shorter
+  # completions and are unaffected.
+  max_gen_toks: 16384
+  do_sample: false
+repeats: 1
+num_fewshot: 0
+filter_list:
+  - name: "extract_code"
+    filter:
+      - function: "custom"
+        filter_fn: !function utils.build_predictions_extract_code
+metadata:
+  version: 1.0

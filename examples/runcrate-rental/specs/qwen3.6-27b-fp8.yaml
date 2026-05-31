@@ -1,0 +1,82 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Qwen3.6-27B-Dense FP8 on Runcrate GH200 ×1
+#
+# Operator-set fields before launch:
+#   rental_host — hostname or IP of the provisioned Runcrate GH200 box
+#                 (default in bd memory: thirsty-swirles-gh200-2c97 in Dulles)
+#
+# Validated against bd memory runcrate-sku-mapping-for-benchmarks-rlp-4-11
+# (vLLM >= 0.20.1, CUDA 13.0, --tensor-parallel-size 1, NO --enable-expert-parallel).
+
+model_id: Qwen/Qwen3.6-27B-FP8
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# Quant: FP8 weights are recognised by vLLM auto-config; no --quantization flag
+# needed (unlike NVFP4 which does require --quantization nvfp4).
+quant: ""
+
+tensor_parallel_size: 1
+# 256K target — Qwen3.6 native context, fits in 96 GB GH200 KV budget after
+# 30 GB FP8 weights. 128K is the absolute floor (memory
+# feedback_context_length_policy_2026-05-18); push 256K so SEC-bench poc-san
+# and longer agentic Pool A traces never approach the cap.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# vLLM serving args.
+#
+# CRITICAL (research agent 2026-05-09, validated against vllm#37714 + #39287):
+# Qwen3.x hybrid architecture has Gated Delta Networks (GDN) layers (3 GDN +
+# 1 attention per block). The GDN prefill kernel triggers FlashInfer JIT
+# compilation at startup, which requires a full CUDA SDK + working build
+# toolchain on the rental host. Runcrate's stock image only ships CUDA
+# runtime libs — JIT fails with "Could not find nvcc"-style cascades.
+#
+# Fix: --gdn-prefill-backend triton uses vLLM's bundled Triton kernel for
+# GDN, sidestepping the JIT entirely. Triton ships with vLLM/PyTorch.
+# Officially-supported fallback per vLLM PR #37507.
+#
+# --max-num-batched-tokens 2096 is REQUIRED for GDN models — Mamba cache
+# 'align' mode requires block_size <= max_num_batched_tokens, and vLLM's
+# default 8192 violates this (vllm#37714).
+#
+# Per <CAMPAIGN> NOTES: stock kernels otherwise, KV cache fp8_e4m3, enable prefix
+# caching. NO speculative decoding flags (eval the bare model).
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --max-num-batched-tokens
+  - "2096"
+  # --kv-cache-dtype fp8_e4m3 was REMOVED 2026-05-10 (<CAMPAIGN> retry):
+  # the Qwen3.6-27B-FP8 checkpoint uses activation_scheme=dynamic and
+  # ships no pre-computed q_scale/k_scale, so vLLM falls back to scale=1.0
+  # (warnings: kv_cache.py:109 + :123). Estimated 1-3pp on HumanEval+ and
+  # 5-8pp on IFEval per agent investigation 2026-05-10. Production deploy
+  # may want it back for memory headroom; for offline eval we let KV
+  # default to auto (bf16) for accuracy.
+  - --enable-prefix-caching
+  # bd <ISSUE> (2026-05-11): <CAMPAIGN> retry-of-retry BCB-Hard fix. The 941d958
+  # per-request extra_body fix covers lm-eval/litellm paths (humaneval+,
+  # ifeval) but bigcodebench has its own openai client and bypasses
+  # litellm — so Qwen3.6's <think> preamble eats the generation budget
+  # and truncates code. Server-side flag covers ALL request paths.
+  # Per vLLM recipes (recipes.vllm.ai/Qwen/Qwen3.6-27B).
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  # Reasoning parser separates thinking traces into reasoning_content,
+  # leaving content clean for downstream regex extraction. vLLM-recommended
+  # deployment for non-agentic eval. OPEN: may require vLLM >= 0.21 — if
+  # the rental's 0.20.1 rejects the flag at startup, drop this pair and
+  # rely on --default-chat-template-kwargs alone (which is what plugs
+  # the actual BCB-Hard hole).
+  - --reasoning-parser
+  - qwen3
+  # Tool-call parser + auto-choice (bd <ISSUE> 2026-05-19): required for any agent
+  # harness that calls the endpoint with tool_choice=auto (Pool A cybergym,
+  # ExploitBench). qwen3_xml is the streaming-capable parser for Qwen3 family.
+  - --tool-call-parser
+  - qwen3_xml
+  - --enable-auto-tool-choice
+
+local_port: 8000

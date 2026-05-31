@@ -1,0 +1,106 @@
+# rental-spec for benchmarks-<CAMPAIGN> Pool A under bd <CAMPAIGN> paired-mode:
+# QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ at 256K context with thinking-ON.
+#
+# This is the canonical Pool A <CAMPAIGN> spec, NOT the prior Pool B canary
+# (qwen3-235b-thinking-awq-thinking-on.yaml at TP=2 / 128K). Pool A under
+# the thinking-mode-policy-2026-05-19 lock requires GPU SKU chosen to FIT
+# context, not minimize $/hr — RTXPro6000 ×4 for 235B at full 256K (per
+# SKU mapping memory + pool-a-exploitbench-methodology-2026-05-19).
+#
+# Companion: qwen3-235b-thinking-awq-256k-thinking-off.yaml (same infra,
+# enable_thinking=false). Both used for the paired-mode comparison under
+# bd <CAMPAIGN> — publish the higher score as canonical with a thinking-mode
+# marker per the policy.
+#
+# Hardware: Runcrate **H100 ×4** (auto-deploy by {gpu_type, gpu_count}).
+# Operator decision 2026-05-19: H100 ×4 over RTXPro6000 ×4 for <CAMPAIGN> Pool A
+# despite slightly higher cost. Reasoning:
+#   (a) ~3× memory bandwidth (HBM3 vs GDDR7) → faster inference on a
+#       235B-class memory-bound model; lower paired-mode wall = lower
+#       total burn even at the higher $/hr.
+#   (b) Mature Hopper platform — no SM120 NVFP4 JIT / attention-backend
+#       quirks we've been working around on Blackwell this sweep.
+#   (c) Better inventory reliability (RTXPro6000 ×4 was gone 2026-05-15;
+#       H100 ×4 reverent-mclean-h100x4-9380 has been consistently present).
+# Fallback: RTXPro6000 ×4 if H100 ×4 unavailable at provision time.
+#
+# Math at TP=4: 235B AWQ-INT4 weights ≈ 116 GB → 29 GB/GPU.
+#   H100 ×4:    80 GB/GPU × 4 = 320 GB total. Weights 29 GB/GPU + 256K KV
+#               24 GB/GPU at TP=4 = 53 GB/GPU; leaves ~27 GB/GPU headroom.
+#   RTXPro6000 ×4 (fallback): 96 GB/GPU × 4 = 384 GB. Same weights+KV
+#               leaves ~43 GB/GPU headroom — more comfortable but slower
+#               bandwidth.
+#
+# Pool A scope (cybergym, sec-bench, exploitbench): per the <CAMPAIGN> audit
+# (docs/research/<CAMPAIGN>-pool-a-audit-2026-05-19.md), the cybergym runner
+# needs bd <ISSUE> landed first (per-turn max-output-tokens 2048 → 16384) for
+# any thinking-on cell to actually use reasoning. SEC-bench via smolagents
+# has no per-turn cap. ExploitBench at turn-budget=300 is the canonical
+# per pool-a-exploitbench-methodology-2026-05-19.
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed RTXPro6000 ×4 box.
+
+model_id: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# AWQ-INT4 quantization. QuantTrio packages with `quant_method=awq` in
+# config.json — pass --quantization awq.
+quant: awq
+
+# TP=4 weight-shard. --enable-expert-parallel still OFF at TP=4 per the
+# Qwen3 235B model card (MoE EP overhead vs benefit unfavorable at our
+# scale; revisit if Qwen team publishes updated guidance).
+tensor_parallel_size: 4
+
+# 256K target per feedback_context_length_policy_2026-05-18 — UNBLOCKED at
+# TP=4 (KV math: 256K seq ≈ 24 GB/GPU at TP=4 vs the 48 GB/GPU at TP=2 that
+# overflowed). Native Qwen3-235B context is 256K via YaRN; we're at native
+# limit here.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# enable_thinking=TRUE — the <CAMPAIGN> paired-mode "on" cell. Compare against
+# qwen3-235b-thinking-awq-256k-thinking-off.yaml under the same infra.
+# Pool A specifically benefits from reasoning between tool calls (per
+# qwen3-thinking-disabled-measurement-bias-2026-05-15) so the on-cell
+# expected to dominate; we measure both regardless per policy.
+#
+# Parser additions per <CAMPAIGN> audit Subagent 2, REVISED 2026-05-20 after
+# bd <ISSUE> EB shakedown empirical evidence (campaign
+# <CAMPAIGN>-poolA-<CAMPAIGN>-thinkingon-2026-05-20 / exploitbench-14-shakedown):
+# - --reasoning-parser qwen3 (UNCHANGED; splits <think> blocks into
+#   .reasoning_content vs .content for the agent harness)
+# - --tool-call-parser hermes (REVISED from qwen3_xml). The Thinking-2507
+#   chat template emits Hermes-style <tool_call>{json}</tool_call> JSON
+#   wrappers — confirmed against upstream tokenizer_config.json + observed
+#   in shakedown transcript. qwen3_xml is for Qwen3-Coder which uses a
+#   different <function=NAME><parameter=KEY>VALUE</parameter></function>
+#   XML-element syntax (per vLLM 0.21 docs). Using qwen3_xml on this model
+#   leaves tool_calls=[] and the agent exits at turn 1 with no_tool_calls.
+#   Cf. vLLM issue #31045 (community deploys this exact model with hermes).
+#   Known caveat (vLLM #39056): if <tool_call> appears INSIDE <think>, the
+#   qwen3 reasoning parser swallows it. The Thinking-2507 model card says
+#   tool calls always come after </think>, so this shouldn't bite — but
+#   watch for empty tool_calls paired with <tool_call> substrings in
+#   reasoning_content as the tell.
+# - --enable-auto-tool-choice (UNCHANGED; pairs with --tool-call-parser)
+#
+# --gdn-prefill-backend triton: Qwen3 architecture's Gated Delta Network
+# attention prefill kernel requires the Triton backend on vLLM ≥0.20 —
+# same rationale as <CAMPAIGN>/<CAMPAIGN> specs.
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": true}'
+  - --reasoning-parser
+  - qwen3
+  - --tool-call-parser
+  - hermes
+  - --enable-auto-tool-choice
+
+local_port: 8003  # <CAMPAIGN> paired-mode on lane; off variant uses 8004

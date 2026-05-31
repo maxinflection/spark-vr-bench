@@ -1,0 +1,2123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DGX-Spark Compatible Coding &amp; VR Benchmarks</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@500;700;900&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:        #0d1117;
+  --bg-deep:   #060a10;
+  --bg-panel:  #11161f;
+  --bg-panel2: #161c27;
+  --bg-front:  #1a1410;
+  --bg-front2: #221814;
+  --grid:      #1c2330;
+  --rule:      #243043;
+  --rule-hot:  #2f3e57;
+
+  --ink:       #c8d0dc;
+  --ink-dim:   #8c97a8;
+  --ink-faint: #5a6678;
+  --ink-ghost: #3a4456;
+
+  --phos:      #5af78e;
+  --phos-dim:  #3aa860;
+  --phos-deep: #1d6638;
+  --amber:     #ffb86b;
+  --amber-dim: #b07a3a;
+  --vermil:    #ff5f56;
+  --vermil-dim:#a83a35;
+  --cyan:      #7ee0ff;
+  --cyan-dim:  #3d8eaa;
+  --magenta:   #d782ff;
+  --magenta-dim:#8a4ba8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 "IBM Plex Mono", ui-monospace, monospace;
+  font-feature-settings: "tnum" 1, "zero" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(rgba(90,247,142,0.045) 1px, transparent 1px),
+    radial-gradient(at 100% 0%, rgba(126,224,255,0.05), transparent 50%),
+    radial-gradient(at 0% 100%, rgba(255,184,107,0.04), transparent 55%);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
+}
+
+/* CRT scanlines */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0) 4px
+    );
+  mix-blend-mode: multiply;
+}
+
+/* CRT vignette */
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+
+.frame {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+  position: relative;
+  z-index: 10;
+}
+
+/* TITLE BLOCK */
+.title-block {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  padding: 20px 0 28px;
+  border-bottom: 1px solid var(--rule-hot);
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  font: 400 12px/1 "Major Mono Display", monospace;
+  color: var(--phos);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.eyebrow .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--phos);
+  box-shadow: 0 0 8px rgba(90,247,142,0.6);
+}
+
+.bigtitle {
+  font: 900 clamp(36px, 5.8vw, 76px)/0.95 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  text-transform: uppercase;
+  max-width: 22ch;
+}
+.bigtitle .accent { color: var(--phos); }
+.bigtitle .sub {
+  display: block;
+  color: var(--ink-dim);
+  font-size: 0.32em;
+  letter-spacing: 0.14em;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+.framing {
+  margin-top: 18px;
+  max-width: 60ch;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.framing .accent { color: var(--phos); }
+.framing .warn   { color: var(--amber); }
+
+.title-meta {
+  text-align: right;
+  font: 500 12px/1.5 "IBM Plex Mono", monospace;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.title-meta .row { display: flex; justify-content: flex-end; gap: 10px; padding: 3px 0; }
+.title-meta .k { color: var(--ink-faint); text-transform: uppercase; }
+.title-meta .v { color: var(--ink); font-weight: 600; }
+.title-meta .v.phos { color: var(--phos); }
+
+/* SECTION HEADER ASCII */
+.ascii-div {
+  font: 400 11px/1 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  white-space: pre;
+  overflow: hidden;
+  letter-spacing: -0.02em;
+}
+.ascii-div .lbl {
+  color: var(--phos);
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+/* PANELS */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  margin-bottom: 36px;
+}
+.panel-head {
+  display: flex; align-items: center; gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #161c27 0%, #11161f 100%);
+  border-bottom: 1px solid var(--rule);
+  font: 700 13px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--phos);
+}
+.panel-head .id { color: var(--ink-faint); font-weight: 400; }
+.panel-head .spacer { flex: 1; }
+.panel-head .meta {
+  color: var(--ink-dim);
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.panel-head .meta .phos { color: var(--phos); }
+.panel-head .meta .amber { color: var(--amber); }
+.panel-head .meta .vermil { color: var(--vermil); }
+
+.panel-body { padding: 0; }
+
+/* INFO DOTS */
+.info {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 13px; height: 13px;
+  border: 1px solid var(--cyan-dim);
+  border-radius: 50%;
+  color: var(--cyan);
+  font: 700 9px/1 "IBM Plex Mono", monospace;
+  margin-left: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+  vertical-align: middle;
+  background: transparent;
+}
+.info:hover {
+  background: var(--cyan-dim);
+  color: var(--bg);
+  box-shadow: 0 0 8px rgba(126,224,255,0.5);
+}
+.info.open {
+  background: var(--cyan);
+  color: var(--bg);
+}
+
+/* MATRIX */
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font: 14px/1.45 "IBM Plex Mono", monospace;
+  table-layout: fixed;
+}
+
+.matrix col.col-model    { width: 24%; }
+.matrix col.col-score    { width: 9.5%; }
+.matrix col.col-exploit  { width: 11%; }
+
+.matrix .grp {
+  height: 28px;
+  background: var(--bg-panel2);
+  border-bottom: 1px solid var(--rule);
+}
+.matrix .grp th {
+  text-align: center;
+  font: 700 13px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 9px 6px;
+  border-right: 1px solid var(--rule);
+}
+.matrix .grp th.gB { color: var(--phos); }
+.matrix .grp th.gA { color: var(--amber); }
+.matrix .grp th.spacer { background: transparent; border-right: none; }
+
+.matrix thead.cols th {
+  font: 700 11px/1.25 "IBM Plex Mono", monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--rule-hot);
+  vertical-align: bottom;
+  text-align: center;
+  background: linear-gradient(180deg, #11161f 0%, #0d1117 100%);
+}
+.matrix thead.cols th.left { text-align: left; }
+.matrix thead.cols th .hint {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: none;
+  margin-top: 4px;
+}
+.matrix thead.cols th.gB-end { border-right: 1px solid var(--rule); }
+
+.matrix tbody tr {
+  border-bottom: 1px solid var(--grid);
+}
+.matrix tbody tr:hover { background: rgba(126,224,255,0.03); }
+.matrix tbody tr.frontier {
+  background: var(--bg-front);
+}
+.matrix tbody tr.frontier:hover { background: var(--bg-front2); }
+.matrix tbody tr.divider {
+  background: transparent;
+  border-bottom: 1px solid var(--rule);
+  border-top: 1px solid var(--rule);
+}
+.matrix tbody tr.divider td {
+  padding: 6px 14px;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: linear-gradient(90deg, rgba(255,184,107,0.08), transparent 60%);
+}
+
+.matrix td {
+  padding: 14px 8px;
+  vertical-align: top;
+  border-right: 1px solid var(--grid);
+}
+.matrix td.left { text-align: left; padding-left: 14px; }
+.matrix td.gB-end { border-right: 1px solid var(--rule); }
+
+/* MODEL CELL — hexgrid style: rank | (name+tags / profile) */
+.model-cell { display: flex; align-items: flex-start; gap: 14px; }
+.model-cell .rank {
+  font: 700 18px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  min-width: 24px;
+  padding-top: 1px;
+}
+.model-cell .m-stack { flex: 1; min-width: 0; }
+.model-cell .m-line {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 4px;
+}
+.model-cell .mname {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.model-cell .tag {
+  display: inline-block;
+  padding: 2px 6px;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--ink-faint);
+  color: var(--ink-dim);
+  border-radius: 2px;
+}
+.model-cell .tag.moe    { color: var(--amber); border-color: var(--amber-dim); }
+.model-cell .tag.dense  { color: var(--cyan); border-color: var(--cyan-dim); }
+.model-cell .tag.front  { color: var(--magenta); border-color: var(--magenta-dim); }
+.model-cell .tag.spark1 { color: var(--phos); border-color: var(--phos-deep); background: rgba(90,247,142,0.06); }
+.model-cell .tag.spark2 { color: var(--amber); border-color: var(--amber-dim); background: rgba(255,184,107,0.08); }
+.model-cell .profile {
+  color: var(--ink-faint);
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+.model-cell .profile .kw  { color: var(--cyan-dim); font-weight: 500; }
+.model-cell .profile .kw2 { color: var(--magenta-dim); }
+
+/* SCORE CELL */
+.score-cell {
+  text-align: right;
+  cursor: pointer;
+  position: relative;
+  padding-right: 12px !important;
+}
+.score-cell:hover { background: rgba(90,247,142,0.04); }
+.score-cell .v {
+  font: 700 17px/1 "IBM Plex Mono", monospace;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.score-cell .v.phos   { color: var(--phos); }
+.score-cell .v.amber  { color: var(--amber); }
+.score-cell .v.vermil { color: var(--vermil); }
+.score-cell .v.front  { color: var(--magenta); }
+.score-cell .t {
+  font-size: 10px;
+  color: var(--amber);
+  margin-left: 2px;
+  vertical-align: 7px;
+}
+.score-cell .n {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 11px;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+.score-cell .bar {
+  margin-top: 6px;
+  height: 4px;
+  background: var(--bg-deep);
+  border: 1px solid var(--grid);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.score-cell .bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--phos-deep), var(--phos));
+}
+.score-cell .bar.amber i  { background: linear-gradient(90deg, var(--amber-dim), var(--amber)); }
+.score-cell .bar.vermil i { background: linear-gradient(90deg, var(--vermil-dim), var(--vermil)); }
+.score-cell .bar.front i  { background: linear-gradient(90deg, var(--magenta-dim), var(--magenta)); }
+.score-cell.empty {
+  color: var(--ink-ghost);
+  text-align: center;
+  font-size: 18px;
+  cursor: default;
+}
+.score-cell.tbd {
+  text-align: center;
+  cursor: default;
+}
+.score-cell.tbd .v {
+  font: 700 11px/1 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  letter-spacing: 0.14em;
+}
+/* always-present chevron; only opacity changes — prevents hover jitter */
+.score-cell[data-run]::after {
+  content: "▾";
+  position: absolute;
+  top: 10px; right: 4px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--cyan-dim);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+.score-cell[data-run]:hover::after { opacity: 1; }
+.score-cell.open::after {
+  content: "▴";
+  color: var(--cyan);
+  opacity: 1;
+}
+
+/* ROW-EXPAND DRILLDOWN */
+.matrix tr.drilldown {
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--rule-hot);
+}
+.matrix tr.drilldown.hidden { display: none; }
+.matrix tr.drilldown td {
+  padding: 0;
+  border-right: none;
+}
+.drilldown-body {
+  padding: 18px 22px 22px;
+  border-left: 3px solid var(--cyan);
+  background: linear-gradient(180deg, rgba(126,224,255,0.04), transparent);
+}
+.dd-head {
+  display: flex; align-items: baseline; gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--grid);
+}
+.dd-head h4 {
+  font: 700 14px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.dd-head .id {
+  font: 500 11px/1.3 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+.dd-head .close {
+  margin-left: auto;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule);
+  padding: 5px 10px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  text-transform: uppercase;
+  background: transparent;
+}
+.dd-head .close:hover {
+  color: var(--vermil);
+  border-color: var(--vermil-dim);
+}
+.dd-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 22px;
+  font-size: 13px;
+}
+.dd-grid h5 {
+  font: 700 11px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--phos);
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--grid);
+}
+.dd-grid dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; }
+.dd-grid dt { color: var(--ink-faint); }
+.dd-grid dd { color: var(--ink); font-weight: 500; }
+.dd-grid code {
+  font: 400 11px/1.3 "IBM Plex Mono", monospace;
+  color: var(--cyan);
+  background: rgba(126,224,255,0.06);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.dd-grid .hist {
+  display: flex; gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.dd-grid .hist span {
+  padding: 2px 6px;
+  border: 1px solid var(--grid);
+  color: var(--ink-dim);
+}
+.dd-grid .hist .ok { color: var(--phos); border-color: var(--phos-deep); }
+.dd-grid .hist .bad { color: var(--vermil); border-color: var(--vermil-dim); }
+.dd-grid .samples { list-style: none; }
+.dd-grid .samples li {
+  padding: 7px 9px;
+  margin-bottom: 5px;
+  border-left: 2px solid var(--grid);
+  color: var(--ink-dim);
+  font-size: 12px;
+}
+.dd-grid .samples li.pass { border-left-color: var(--phos); }
+.dd-grid .samples li.fail { border-left-color: var(--vermil); }
+.dd-grid .samples .label {
+  color: var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+.dd-grid .note {
+  color: var(--ink-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+/* POPOVERS */
+.popover {
+  display: none;
+  position: absolute;
+  z-index: 200;
+  background: var(--bg-deep);
+  border: 1px solid var(--cyan-dim);
+  padding: 16px 18px;
+  max-width: 420px;
+  font: 400 13px/1.6 "IBM Plex Mono", monospace;
+  color: var(--ink);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(126,224,255,0.05);
+}
+.popover.open { display: block; }
+.popover h5 {
+  font: 700 11px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.popover .k { color: var(--ink-faint); }
+.popover code {
+  font: 400 11px/1.3 "IBM Plex Mono", monospace;
+  color: var(--phos);
+  background: rgba(90,247,142,0.06);
+  padding: 1px 4px;
+}
+.popover p { margin-bottom: 6px; }
+.popover p:last-child { margin-bottom: 0; }
+
+/* METHODOLOGY */
+.method {
+  margin-top: 0;
+  padding: 28px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+}
+.method h2 {
+  font: 900 28px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+.method h2 .sub {
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-left: 10px;
+}
+.method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.method-grid h3 {
+  font: 700 13px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--phos);
+  margin-bottom: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px dashed var(--grid);
+}
+.method-grid dl { display: grid; grid-template-columns: max-content 1fr; gap: 7px 14px; font-size: 13px; line-height: 1.6; }
+.method-grid dt { color: var(--ink-faint); }
+.method-grid dd { color: var(--ink); }
+.method-grid code {
+  font: 400 11px/1.3 "IBM Plex Mono", monospace;
+  color: var(--cyan);
+  background: rgba(126,224,255,0.06);
+  padding: 1px 4px;
+}
+
+/* TAB NAV */
+.tabs {
+  display: flex;
+  gap: 28px;
+  margin: 6px 0 28px;
+  padding-left: 2px;
+  border-bottom: 1px solid var(--rule);
+}
+.tab {
+  padding: 12px 4px 14px;
+  font: 700 13px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.tab:hover { color: var(--ink-dim); }
+.tab.active { color: var(--phos); border-bottom-color: var(--phos); }
+.tab .pre { color: var(--ink-ghost); margin-right: 6px; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* CHARTS VIEW */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.chart-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  padding: 18px 20px 22px;
+}
+.chart-card .chart-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--grid);
+}
+.chart-card h3 {
+  font: 900 22px/1 "Big Shoulders Stencil Display", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.chart-card .sub {
+  font: 400 11px/1 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+.chart-card .grp-tag {
+  margin-left: auto;
+  font: 700 9px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+}
+.chart-card .grp-tag.B { color: var(--phos); border-color: var(--phos-deep); }
+.chart-card .grp-tag.A { color: var(--amber); border-color: var(--amber-dim); }
+
+/* vertical chart area */
+.chart-area {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: 220px 56px;
+  gap: 0;
+}
+.chart-area .y-axis {
+  grid-column: 1; grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font: 400 10px/1 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  text-align: right;
+  padding-right: 8px;
+  padding-bottom: 12px;
+  border-right: 1px solid var(--grid);
+}
+
+.chart-area .bars {
+  grid-column: 2; grid-row: 1;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  align-items: end;
+  gap: 7px;
+  padding: 0 4px 12px;
+  border-bottom: 1px solid var(--grid);
+}
+.chart-area .bars .gridline {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 1px dashed var(--grid);
+  pointer-events: none;
+}
+
+.chart-area .col {
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: end;
+}
+.chart-area .col .stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  position: relative;
+}
+.chart-area .col .seg {
+  width: 100%;
+}
+.chart-area .col .seg.off,
+.chart-area .col .seg.off-only {
+  background: linear-gradient(180deg, var(--amber), var(--amber-dim));
+}
+.chart-area .col .seg.on,
+.chart-area .col .seg.on-delta {
+  background: linear-gradient(180deg, var(--phos), var(--phos-deep));
+}
+.chart-area .col .seg.on-delta { border-top: 1px dashed rgba(0,0,0,0.4); }
+.chart-area .col .seg.front {
+  background: linear-gradient(180deg, var(--magenta), var(--magenta-dim));
+}
+.chart-area .col .vtop {
+  position: absolute;
+  bottom: 100%;
+  left: 50%; transform: translateX(-50%);
+  margin-bottom: 4px;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
+  color: var(--ink);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1;
+}
+.chart-area .col .vtop.wn-on    { color: var(--phos); }
+.chart-area .col .vtop.wn-off   { color: var(--amber); }
+.chart-area .col .vtop.wn-front { color: var(--magenta); }
+.chart-area .col.frontier .vtop { color: var(--magenta); }
+.chart-area .col.empty {
+  justify-content: center;
+  align-items: end;
+  color: var(--ink-ghost);
+  font-size: 12px;
+  padding-bottom: 6px;
+}
+
+.chart-area .labels {
+  grid-column: 2; grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 7px;
+  padding: 8px 4px 0;
+}
+.chart-area .labels .lbl {
+  text-align: center;
+  font: 500 11px/1.2 "IBM Plex Mono", monospace;
+  color: var(--ink-dim);
+  font-feature-settings: "tnum" 1;
+  overflow: hidden;
+}
+.chart-area .labels .lbl .row2 {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-faint);
+  font-size: 10px;
+}
+.chart-area .labels .lbl.frontier { color: var(--magenta); font-weight: 600; }
+.chart-area .labels .lbl.frontier .row2 { color: var(--magenta-dim); }
+
+/* spark-group separators on the x-axis */
+.chart-area .bars .colsep {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-left: 1px dotted var(--rule);
+  pointer-events: none;
+}
+
+.chart-card .legend {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--grid);
+  display: flex;
+  gap: 18px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  flex-wrap: wrap;
+}
+.chart-card .legend .key {
+  display: flex; align-items: center; gap: 6px;
+}
+.chart-card .legend .swatch {
+  width: 14px; height: 11px;
+  display: inline-block;
+}
+.chart-card .legend .swatch.off    { background: linear-gradient(180deg, var(--amber), var(--amber-dim)); }
+.chart-card .legend .swatch.on     { background: linear-gradient(180deg, var(--phos), var(--phos-deep)); }
+.chart-card .legend .swatch.front  { background: linear-gradient(180deg, var(--magenta), var(--magenta-dim)); }
+
+@media (max-width: 1100px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+/* FOOTER */
+.footer {
+  margin-top: 28px;
+  padding: 18px 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  font: 400 12px/1.5 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+.footer .mark {
+  font: 400 12px/1 "Major Mono Display", monospace;
+  color: var(--phos-dim);
+  letter-spacing: 0.18em;
+}
+
+/* VIEW-MODE SWITCHER */
+.view-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0 0 22px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  background: var(--bg-panel);
+  width: fit-content;
+}
+.vm-btn {
+  padding: 7px 16px;
+  font: 700 11px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+  position: relative;
+  white-space: nowrap;
+}
+.vm-btn:last-of-type { border-right: none; }
+.vm-btn:hover { color: var(--ink-dim); background: rgba(255,255,255,0.02); }
+.vm-btn.active {
+  color: var(--bg);
+  background: var(--phos-dim);
+}
+.vm-btn.active.max-mode { background: var(--magenta-dim); }
+.vm-btn.active.dev-mode { background: var(--amber-dim); }
+.vm-btn .vm-key {
+  color: var(--ink-ghost);
+  margin-right: 5px;
+  font-weight: 400;
+}
+.vm-btn.active .vm-key { color: var(--bg); opacity: 0.6; }
+
+/* PER-DIM FILTER CHIPS — replaces the old single-axis dropdown */
+.filters-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: -14px 0 22px;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, rgba(126,224,255,0.04), transparent 70%);
+  border: 1px solid var(--rule);
+  border-top: none;
+  font: 400 11px/1.4 "IBM Plex Mono", monospace;
+}
+.filters-bar .filters-hint {
+  color: var(--ink-ghost);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-label {
+  min-width: 84px;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.filter-chip {
+  font: 600 10px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  outline: none;
+  font-feature-settings: "tnum" 1;
+}
+.filter-chip:hover { color: var(--ink-dim); border-color: var(--rule-hot); }
+.filter-chip.active {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+  background: rgba(126,224,255,0.06);
+}
+.filter-chip.active:hover { color: var(--cyan); border-color: var(--cyan); }
+.filter-chip .chip-mark {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--cyan);
+  width: 8px;
+  text-align: center;
+}
+.filter-chip:not(.active) .chip-mark { color: var(--ink-ghost); }
+
+/* MAX-MODE CAVEAT BANNER */
+.max-caveat {
+  display: none;
+  margin: -14px 0 22px;
+  padding: 7px 14px;
+  background: linear-gradient(90deg, rgba(215,130,255,0.07), transparent 70%);
+  border: 1px solid var(--magenta-dim);
+  border-top: none;
+  font: 400 11px/1.4 "IBM Plex Mono", monospace;
+  color: var(--magenta-dim);
+  letter-spacing: 0.06em;
+}
+.max-caveat.visible { display: block; }
+.max-caveat strong { color: var(--magenta); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* DEVIATION CELL EXTRAS */
+.score-cell .delta {
+  display: block;
+  font: 600 11px/1 "IBM Plex Mono", monospace;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+.score-cell .delta.pos { color: var(--phos); }
+.score-cell .delta.neg { color: var(--vermil); }
+.score-cell .delta.zero { color: var(--ink-faint); }
+.score-cell .dev-rows {
+  margin-top: 4px;
+  font: 400 10px/1.5 "IBM Plex Mono", monospace;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.score-cell .dev-rows .dr {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 1px 0;
+}
+.score-cell .dev-rows .dr.is-ref { color: var(--amber); }
+.score-cell .dev-rows .dr.is-max { color: var(--phos); }
+
+/* deviation chart segments */
+.chart-area .col .seg.dv-ref {
+  background: linear-gradient(180deg, var(--amber), var(--amber-dim));
+}
+.chart-area .col .seg.dv-delta-pos {
+  background: linear-gradient(180deg, var(--phos), var(--phos-deep));
+  border-top: 1px dashed rgba(0,0,0,0.35);
+}
+.chart-area .col .seg.dv-delta-neg {
+  background: linear-gradient(180deg, var(--vermil), var(--vermil-dim));
+}
+.chart-area .col .seg.dv-only {
+  background: linear-gradient(180deg, var(--cyan), var(--cyan-dim));
+}
+/* max chart segment */
+.chart-area .col .seg.max-v {
+  background: linear-gradient(180deg, var(--magenta), var(--magenta-dim));
+}
+
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- TITLE BLOCK -->
+  <div class="title-block">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>open-weight benchmark board</div>
+      <h1 class="bigtitle">
+        <span class="accent">DGX-Spark</span> Compatible
+        Coding &amp; VR Benchmarks
+        <span class="sub">where open-weight models stand</span>
+      </h1>
+      <p class="framing">
+        <span class="accent">Coding</span> and <span class="accent">vulnerability-research</span> benchmarks
+        across the leading open-weight model families, with frontier models
+        (<span class="accent">Opus 4.7</span>, <span class="accent">GPT-5.5</span>) held alongside for reference.
+        Cells are clickable for run detail; ⓘ dots open benchmark- and model-specific notes.
+        <span class="warn">Thinking-off (ᵗ)</span> marks rows where the harness bandage is in effect.
+      </p>
+    </div>
+    <div class="title-meta">
+      <div class="row"><span class="k">rev</span> <span class="v" id="rev-tag">2026-05-24 · r17</span></div>
+      <div class="row"><span class="k">audit</span> <span class="v phos">replay verified</span></div>
+      <div class="row"><span class="k">curator</span> <span class="v"><MAINTAINER_EMAIL></span></div>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-view="table" role="tab"><span class="pre">[</span>TABLE<span class="pre">]</span></button>
+    <button class="tab" data-view="charts" role="tab"><span class="pre">[</span>CHARTS<span class="pre">]</span></button>
+  </nav>
+
+  <!-- VIEW-MODE SWITCHER -->
+  <div class="view-mode-bar" id="view-mode-bar">
+    <button class="vm-btn active" data-vm="canonical"><span class="vm-key">[1]</span>CANONICAL</button>
+    <button class="vm-btn dev-mode" data-vm="deviation"><span class="vm-key">[2]</span>DEVIATION / UPLIFT</button>
+    <button class="vm-btn max-mode" data-vm="max"><span class="vm-key">[3]</span>MAX CEILING</button>
+  </div>
+  <!-- PER-DIM FILTER CHIPS — toggle which measurements are shown -->
+  <div class="filters-bar" id="filters-bar"></div>
+  <!-- MAX CAVEAT (max mode) -->
+  <div class="max-caveat" id="max-caveat">
+    <strong>ceiling view</strong> &mdash; each cell shows max(value) over all measured conditions. <strong>NOT cross-comparable across models</strong>: maxima may be reached under different conditions (different thinking settings, turn budgets, harness variants, etc.).
+  </div>
+
+  <!-- ============================================================
+       TABLE VIEW
+  ============================================================ -->
+  <div class="view active" data-view-id="table">
+
+  <!-- MATRIX SECTION HEADER -->
+  <div class="ascii-div">
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+  </div>
+  <div class="ascii-div">
+    ┃<span class="lbl">▌ SCORE MATRIX ▐</span>━━━ open-weight × frontier ━━━ pool B (single-pass quality) + pool A (agentic security) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃
+  </div>
+  <div class="ascii-div">
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span>BOARD</span>
+      <span class="id">// matrix.unified.openweight+frontier</span>
+      <span class="spacer"></span>
+      <span class="meta" id="board-meta"></span>
+    </div>
+    <div class="panel-body">
+      <table class="matrix" id="board-matrix"></table>
+    </div>
+  </div>
+
+
+  <!-- METHODOLOGY SECTION -->
+  <div class="ascii-div">
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+  </div>
+  <div class="ascii-div">
+    ┃<span class="lbl">▌ METHODOLOGY ▐</span>━━━ how this board is built ━━━ click info dots in the table above for benchmark-specific notes ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃
+  </div>
+  <div class="ascii-div">
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+  </div>
+
+  <div class="method">
+    <h2>Methodology<span class="sub">global · for benchmark-specific notes, click the info dots</span></h2>
+
+    <div class="method-grid">
+      <div>
+        <h3>Pool B · single-pass quality</h3>
+        <dl>
+          <dt>Harness</dt><dd>lm-eval-harness with <code>openai-chat</code> backend pointed at the vLLM endpoint.</dd>
+          <dt>Decoding</dt><dd>greedy (temperature=0, top_p=1), seed=0, prompt revision <code>v3-locked</code>.</dd>
+          <dt>Thinking</dt><dd>off for open-weight (harness bandage marked <span style="color:var(--amber);">ᵗ</span>). On for frontier where natively supported.</dd>
+          <dt>Tool-parser</dt><dd><code>hermes</code> for Qwen-family thinking models; default for others.</dd>
+          <dt>max_gen</dt><dd>HumanEval+ &amp; IFEval at 16384; BCB-Hard at 8192.</dd>
+        </dl>
+      </div>
+
+      <div>
+        <h3>Pool A · agentic security</h3>
+        <dl>
+          <dt>Loop</dt><dd>300-turn canonical agent loop, openai-chat tool-call protocol, deterministic scoring.</dd>
+          <dt>CyberGym</dt><dd>per-task PoC execution; pass if PoC reproduces a deterministic vulnerability trigger.</dd>
+          <dt>SEC-bench</dt><dd>differential sanitizer on patched build; stock = pre-patch, patched = post.</dd>
+          <dt>CVE-Bench</dt><dd><code>sh /evaluator/done.sh</code> return code; n locked when driver is unblocked.</dd>
+          <dt>ExploitBench-14</dt><dd>16-flag capability bitmap, T1–T5 reach. <em>Most rows pending</em> — full sweep blocked on cost.</dd>
+        </dl>
+      </div>
+
+      <div>
+        <h3>Infra &amp; replay</h3>
+        <dl>
+          <dt>Open-weight</dt><dd>vLLM 0.21.x. Test rig is RTXPro6000 rentals (Runcrate); intended deployment is DGX-Spark (×1 fits single Spark, ×2 needs a dual-Spark cluster).</dd>
+          <dt>Frontier</dt><dd>Opus via Bedrock cross-region + direct-API for SEC (CVP-approved 2026-05-16). GPT via OpenAI direct.</dd>
+          <dt>Artifacts</dt><dd><code>s3://<RESULTS_BUCKET>/&lt;campaign&gt;/&lt;target&gt;/&lt;bench&gt;/</code></dd>
+          <dt>Audit</dt><dd>replay-verified — each row has a deterministic trace tied to its cell.</dd>
+          <dt>Regen</dt><dd><code>scripts/update-sweep-status.sh</code></dd>
+        </dl>
+      </div>
+    </div>
+
+    <p style="margin-top:22px;padding-top:14px;border-top:1px dashed var(--grid);font-size:13px;line-height:1.6;color:var(--ink);">
+      For a plain-English deep dive — the two pools, what "canonical condition" means, the thinking on/off distinction, audit + replay, and honest limitations — read the <a href="../research/methodology-overview.md" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan-dim);">full methodology overview</a>.
+    </p>
+  </div>
+
+  </div><!-- /view-table -->
+
+  <!-- ============================================================
+       CHARTS VIEW
+  ============================================================ -->
+  <div class="view" data-view-id="charts">
+
+    <div class="ascii-div">
+      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    </div>
+    <div class="ascii-div">
+      ┃<span class="lbl">▌ PER-BENCHMARK CHARTS ▐</span>━━━ horizontal bars, one card per benchmark ━━━ thinking-off (ᵗ) marked on bar value ━━━ frontier in magenta ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃
+    </div>
+    <div class="ascii-div">
+      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    </div>
+
+    <div id="charts-grid" class="charts-grid"><!-- rendered by JS --></div>
+
+  </div><!-- /view-charts -->
+
+
+  <div class="footer">
+    <div class="mark">// dgx-spark · coding & vr board</div>
+    <div id="footer-rev">rev 2026-05-24 · r17 · <MAINTAINER_EMAIL></div>
+  </div>
+
+</div>
+
+
+<!-- POPOVERS (generated from board.json) -->
+<div id="popovers"></div>
+
+
+<!-- DRILLDOWN TEMPLATE (cloned on cell click) -->
+<template id="dd-template">
+  <div class="drilldown-body">
+    <div class="dd-head">
+      <h4 class="dd-title"></h4>
+      <span class="id dd-id"></span>
+      <button class="close dd-close" type="button">close</button>
+    </div>
+    <div class="dd-grid">
+      <div>
+        <h5>Run config</h5>
+        <dl>
+          <dt>backend</dt><dd class="dd-backend"></dd>
+          <dt>harness</dt><dd>lm-eval-harness · openai-chat</dd>
+          <dt>prompt rev</dt><dd>v3-locked</dd>
+          <dt>decoding</dt><dd>greedy · seed=0 · max_gen=16384</dd>
+          <dt>parser</dt><dd class="dd-parser">default</dd>
+          <dt>thinking</dt><dd class="dd-thinking"></dd>
+          <dt>wall-clock</dt><dd class="dd-wall">42m 18s · 1 attempt</dd>
+          <dt>cost</dt><dd class="dd-cost">$3.41 (rental hour-share)</dd>
+        </dl>
+      </div>
+      <div>
+        <h5>Verdicts</h5>
+        <dl>
+          <dt>pass@1</dt><dd class="dd-pass"></dd>
+          <dt>audit</dt><dd>replay-verified · digest match</dd>
+          <dt>finish_reason</dt><dd></dd>
+        </dl>
+        <div class="hist">
+          <span class="ok dd-fr-ok"></span>
+          <span class="dd-fr-len"></span>
+          <span class="bad dd-fr-cf"></span>
+        </div>
+        <h5 style="margin-top:14px;">Notes</h5>
+        <p class="note dd-note"></p>
+      </div>
+      <div>
+        <h5>Sample tasks</h5>
+        <ul class="samples">
+          <li class="pass"><span class="label">PASS</span><span class="dd-s1"></span></li>
+          <li class="pass"><span class="label">PASS</span><span class="dd-s2"></span></li>
+          <li class="fail"><span class="label">FAIL</span><span class="dd-s3"></span></li>
+          <li class="fail"><span class="label">FAIL</span><span class="dd-s4"></span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+<script>
+(function () {
+  'use strict';
+
+  // ?data= override (for local dry-run) is constrained to a same-origin
+  // relative path: reject any scheme, protocol-relative //, or .. traversal
+  // so a crafted link can't point fetch() at attacker-controlled JSON.
+  function safeDataUrl(raw) {
+    if (!raw) return 'board.json';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || raw.indexOf('//') === 0 || raw.indexOf('..') !== -1) return null;
+    return raw;
+  }
+  var ID_RE = /^[A-Za-z0-9_.-]+$/;   // model/bench id contract (used in DOM ids/attrs)
+
+  var params  = new URLSearchParams(location.search);
+  var DATA_URL = safeDataUrl(params.get('data'));
+
+  // populated on load
+  var state    = { dims: {}, models: [], benches: [], scoreMap: {}, rev: '', generated_at: '',
+                   viewMode: 'canonical', filters: {} };
+  // state.filters[dim] = { value: true, ... } — only listed values are shown.
+  var cellData = {};   // data-run key -> { model, bench, meas, dev }
+
+  var AXIS_MARK = { thinking: 'ᵗ', max_turns: 'ᵐ', context: 'ᶜ', harness: 'ʰ', quant: 'q', wall_cap: 'ʷ' };
+
+  /* ---------- small helpers ---------- */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+  function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
+  function fmtRatio(v) { return v.toFixed(3); }
+  function colorClass(value, frontier) {
+    if (frontier) return 'front';
+    if (value == null || isNaN(value)) return '';
+    if (value >= 0.5)  return 'phos';
+    if (value >= 0.15) return 'amber';
+    return 'vermil';
+  }
+  function effective(cond, dim) {
+    if (cond && cond[dim] != null) return cond[dim];
+    var d = state.dims[dim];
+    return d ? d.default : undefined;
+  }
+  function condLabel(dim, val) {
+    var d = state.dims[dim];
+    if (d && d.value_labels && d.value_labels[val] != null) return d.value_labels[val];
+    return val == null ? '—' : String(val);
+  }
+
+  /* ---------- canonical (default) view selection ----------
+     Per docs/board/schema.json $defs/score: show the measurement matching
+     benches[].canonical_condition on every pinned dim; else the CLOSEST
+     measured one ranked by (1) fewest deviating axes, (2) highest n,
+     (3) latest completed_at, then (final) last listed. Only status=measured
+     rows are headline-eligible. Structured as selectMeasurement(view) so the
+     view-switcher (<ISSUE>) can add 'uplift'/'max' without touching binding. */
+  function deviatingAxes(cond, canonical) {
+    if (!canonical) return [];
+    return Object.keys(canonical).filter(function (dim) {
+      return effective(cond, dim) !== canonical[dim];
+    });
+  }
+  function selectMeasurement(measurements, bench, view) {
+    view = view || 'canonical';
+    var canonical = bench.canonical_condition || null;
+    var measured = (measurements || [])
+      .map(function (m, i) { return { m: m, i: i }; })
+      .filter(function (x) { return (x.m.status || 'measured') === 'measured' && x.m.value != null; });
+    if (!measured.length) return null;
+    if (view === 'max') {
+      measured.sort(function (a, b) { return (b.m.value || 0) - (a.m.value || 0); });
+      return { m: measured[0].m, dev: deviatingAxes(measured[0].m.condition, canonical) };
+    }
+    // canonical
+    measured.sort(function (a, b) {
+      var da = deviatingAxes(a.m.condition, canonical).length;
+      var db = deviatingAxes(b.m.condition, canonical).length;
+      if (da !== db) return da - db;
+      var na = a.m.n || 0, nb = b.m.n || 0;
+      if (na !== nb) return nb - na;
+      var ta = a.m.completed_at ? Date.parse(a.m.completed_at) : 0;
+      var tb = b.m.completed_at ? Date.parse(b.m.completed_at) : 0;
+      if (ta !== tb) return tb - ta;
+      return b.i - a.i;             // last listed wins
+    });
+    var best = measured[0].m;
+    return { m: best, dev: deviatingAxes(best.condition, canonical) };
+  }
+
+  // resolved cell state for the table: measured | tbd | na | empty
+  // viewOverride allows chartModels() to force a specific view
+  function cellState(modelId, bench, viewOverride) {
+    var entry = state.scoreMap[modelId + '|' + bench.id];
+    if (!entry) return { kind: 'empty' };
+    var allMs = entry.measurements || [];
+    // Apply the per-dim filter chips up front so every downstream view
+    // (canonical / max / deviation) sees the same eligible measurement set.
+    var ms = filteredMeasurements(allMs);
+    var vm = viewOverride != null ? viewOverride : state.viewMode;
+    // Shared fallback when no measured row survives selection:
+    // - filter wiped a real cell -> empty (not TBD; the cell HAS data, just
+    //   nothing matches the chips)
+    // - explicit na status -> na
+    // - genuinely unmeasured/tbd -> tbd
+    function noHeadFallback() {
+      var hadMeasured = allMs.some(function (m) { return (m.status || 'measured') === 'measured' && m.value != null; });
+      if (hadMeasured && !ms.length) return { kind: 'empty' };
+      if (allMs.some(function (m) { return m.status === 'na'; })) return { kind: 'na' };
+      return { kind: 'tbd', label: 'TBD' };
+    }
+
+    if (vm === 'max') {
+      var head = selectMeasurement(ms, bench, 'max');
+      if (head) return { kind: 'measured', m: head.m, dev: head.dev };
+      return noHeadFallback();
+    }
+    if (vm === 'deviation') {
+      // Return all measured rows with delta info; reference = the measurement
+      // closest to all dim defaults (i.e. the most "default-shaped" one).
+      var measured = ms.filter(function (m) {
+        return (m.status || 'measured') === 'measured' && m.value != null;
+      });
+      if (!measured.length) {
+        return noHeadFallback();
+      }
+      // Score each measurement by how many dim defaults it matches.
+      function defaultMatchScore(m) {
+        var s = 0;
+        for (var dim in state.dims) {
+          var def = state.dims[dim].default;
+          if (def == null) continue;
+          if (effective(m.condition, dim) === def) s++;
+        }
+        return s;
+      }
+      var refMeas = null, bestScore = -1;
+      measured.forEach(function (m) {
+        var s = defaultMatchScore(m);
+        if (s > bestScore) { bestScore = s; refMeas = m; }
+      });
+      // Sort: reference first, then by value desc.
+      var sorted = measured.slice().sort(function (a, b) {
+        var aRef = (refMeas && a === refMeas) ? 1 : 0;
+        var bRef = (refMeas && b === refMeas) ? 1 : 0;
+        if (aRef !== bRef) return bRef - aRef;
+        return (b.value || 0) - (a.value || 0);
+      });
+      // Compute deltas vs refMeas.
+      var withDeltas = sorted.map(function (m) {
+        var delta = null;
+        if (refMeas && m !== refMeas) delta = m.value - refMeas.value;
+        else if (refMeas && m === refMeas) delta = 0;
+        return { m: m, delta: delta, isRef: (m === refMeas) };
+      });
+      var canonical = bench.canonical_condition || null;
+      var headline = withDeltas[0];
+      return {
+        kind: 'measured',
+        m: headline.m,
+        dev: deviatingAxes(headline.m.condition, canonical),
+        allRows: withDeltas,
+        refMeas: refMeas
+      };
+    }
+    // canonical (default)
+    var head = selectMeasurement(ms, bench, 'canonical');
+    if (head) return { kind: 'measured', m: head.m, dev: head.dev };
+    return noHeadFallback();
+  }
+
+  /* ---------- table ---------- */
+  function poolEnd(benches, i) {
+    var b = benches[i];
+    return b.pool === 'B' && (i === benches.length - 1 || benches[i + 1].pool !== 'B');
+  }
+
+  function buildMatrix() {
+    var table = document.getElementById('board-matrix');
+    table.innerHTML = '';
+    var benches = state.benches, models = state.models;
+
+    var cg = document.createElement('colgroup');
+    cg.innerHTML = '<col class="col-model">';
+    benches.forEach(function (b) {
+      var c = document.createElement('col');
+      c.className = b.pool === 'A' ? 'col-exploit' : 'col-score';
+      cg.appendChild(c);
+    });
+    table.appendChild(cg);
+
+    // group header (Pool B / Pool A)
+    var counts = {};
+    benches.forEach(function (b) { counts[b.pool] = (counts[b.pool] || 0) + 1; });
+    var grpThead = document.createElement('thead');
+    var grpTr = document.createElement('tr');
+    grpTr.className = 'grp';
+    var grpHtml = '<th class="spacer"></th>';
+    if (counts.B) grpHtml += '<th class="gB" colspan="' + counts.B + '">▌ POOL B · QUALITY ▐</th>';
+    if (counts.A) grpHtml += '<th class="gA" colspan="' + counts.A + '">▌ POOL A · AGENTIC SECURITY ▐</th>';
+    grpTr.innerHTML = grpHtml;
+    grpThead.appendChild(grpTr);
+    table.appendChild(grpThead);
+
+    // column header
+    var colsThead = document.createElement('thead');
+    colsThead.className = 'cols';
+    var colsTr = document.createElement('tr');
+    colsTr.innerHTML = '<th class="left">MODEL <button class="info" data-pop="pop-models">i</button></th>';
+    benches.forEach(function (b, i) {
+      var th = document.createElement('th');
+      if (poolEnd(benches, i)) th.className = 'gB-end';
+      var hint = [];
+      if (b.n != null) hint.push('n=' + b.n);
+      if (b.metric) hint.push(b.metric);
+      th.innerHTML = escapeHtml(b.title) +
+        '<button class="info" data-pop="pop-bench-' + escapeHtml(b.id) + '">i</button>' +
+        (hint.length ? '<span class="hint">' + escapeHtml(hint.join(' · ')) + '</span>' : '');
+      colsTr.appendChild(th);
+    });
+    colsThead.appendChild(colsTr);
+    table.appendChild(colsThead);
+
+    // body + spark-group dividers
+    var tbody = document.createElement('tbody');
+    var prevKey = null;
+    models.forEach(function (m) {
+      var key = m.frontier ? 'frontier' : 'spark' + (m.spark_group == null ? 'x' : m.spark_group);
+      if (key !== prevKey) {
+        var dvr = document.createElement('tr');
+        dvr.className = 'divider';
+        var dtd = document.createElement('td');
+        dtd.colSpan = benches.length + 1;
+        dtd.textContent = dividerLabel(m);
+        dvr.appendChild(dtd);
+        tbody.appendChild(dvr);
+        prevKey = key;
+      }
+      tbody.appendChild(buildRow(m, benches));
+    });
+    table.appendChild(tbody);
+  }
+
+  function dividerLabel(m) {
+    if (m.frontier) return '▌ frontier · for reference ▐';
+    if (m.spark_group === 1) return '▌ open-weight · single DGX-Spark ▐';
+    if (m.spark_group === 2) return '▌ open-weight · dual DGX-Spark ▐';
+    return '▌ open-weight ▐';
+  }
+
+  function buildRow(m, benches) {
+    var tr = document.createElement('tr');
+    if (m.frontier) tr.className = 'frontier';
+
+    var td = document.createElement('td');
+    td.className = 'left';
+    var tagMap = { dense: 'dense', moe: 'moe', frontier: 'front' };
+    var tags = (m.tags || []).map(function (t) {
+      return '<span class="tag ' + (tagMap[t.toLowerCase()] || '') + '">' + escapeHtml(t) + '</span>';
+    }).join('');
+    var rankStyle = m.frontier ? ' style="color:var(--magenta-dim);"' : '';
+    td.innerHTML =
+      '<div class="model-cell">' +
+        '<div class="rank"' + rankStyle + '>' + pad2(m.rank) + '</div>' +
+        '<div class="m-stack">' +
+          '<div class="m-line"><span class="mname">' + escapeHtml(m.name) + '</span>' + tags +
+            '<button class="info" data-pop="pop-model-' + escapeHtml(m.id) + '">i</button></div>' +
+          '<div class="profile">' + escapeHtml(m.profile || '') + '</div>' +
+        '</div>' +
+      '</div>';
+    tr.appendChild(td);
+
+    benches.forEach(function (b, i) {
+      tr.appendChild(buildCell(m, b, poolEnd(benches, i) ? ' gB-end' : ''));
+    });
+    return tr;
+  }
+
+  function buildCell(m, bench, endCls) {
+    var td = document.createElement('td');
+    var st = cellState(m.id, bench);
+    var vm = state.viewMode;
+
+    if (st.kind === 'empty') { td.className = 'score-cell empty' + endCls; td.textContent = '—'; return td; }
+    if (st.kind === 'na')    { td.className = 'score-cell empty' + endCls; td.textContent = 'N/A'; return td; }
+    if (st.kind === 'tbd')   { td.className = 'score-cell tbd' + endCls; td.innerHTML = '<span class="v">' + escapeHtml(st.label) + '</span>'; return td; }
+
+    var mm = st.m;
+    var key = m.id + '-' + bench.id;
+    cellData[key] = { model: m, bench: bench, meas: mm, dev: st.dev };
+    td.className = 'score-cell' + endCls;
+    td.setAttribute('data-run', key);
+
+    var cc = colorClass(mm.value, m.frontier);
+    var mark = (st.dev && st.dev.length)
+      ? '<span class="t">' + st.dev.map(function (d) { return AXIS_MARK[d] || '*'; }).join('') + '</span>'
+      : '';
+    var nHtml = mm.n != null ? '<span class="n">n=' + mm.n + '</span>' : '';
+
+    if (vm === 'deviation' && bench.value_kind === 'ratio' && st.allRows && st.allRows.length > 0) {
+      // Show headline + optional delta + mini per-row list
+      var headRow = st.allRows[0];
+      var deltaHtml = '';
+      if (headRow.delta !== null && headRow.delta !== 0 && !headRow.isRef) {
+        var dCls = headRow.delta > 0 ? 'pos' : 'neg';
+        var dSign = headRow.delta > 0 ? '▲' : '▼';
+        deltaHtml = '<span class="delta ' + dCls + '">' + dSign + ' ' + Math.abs(headRow.delta).toFixed(3) + '</span>';
+      } else if (headRow.isRef) {
+        deltaHtml = '<span class="delta zero">base</span>';
+      } else if (headRow.delta === null && !st.refMeas) {
+        deltaHtml = '<span class="delta zero">no ref</span>';
+      }
+      var w2 = Math.max(2, mm.value * 100);
+      var rowsHtml = '';
+      if (st.allRows.length > 1) {
+        rowsHtml = '<div class="dev-rows">';
+        st.allRows.forEach(function (row) {
+          var axVal = st.axis ? escapeHtml(condLabel(st.axis, effective(row.m.condition, st.axis))) : '';
+          var valStr = row.m.value != null ? fmtRatio(row.m.value) : '?';
+          var drCls = row.isRef ? ' is-ref' : (row.delta !== null && row.delta === Math.max.apply(null, st.allRows.filter(function(r){return r.m.value!=null;}).map(function(r){return r.delta;})) ? ' is-max' : '');
+          rowsHtml += '<div class="dr' + drCls + '"><span>' + axVal + '</span><span>' + escapeHtml(valStr) + '</span></div>';
+        });
+        rowsHtml += '</div>';
+      }
+      td.innerHTML = '<span class="v ' + cc + '">' + fmtRatio(mm.value) + '</span>' + mark + deltaHtml +
+        '<div class="bar ' + cc + '"><i style="width:' + w2 + '%"></i></div>' + rowsHtml;
+    } else if (vm === 'max' && bench.value_kind === 'ratio' && mm.value != null) {
+      var w3 = Math.max(2, mm.value * 100);
+      td.innerHTML = '<span class="v ' + cc + '">' + fmtRatio(mm.value) + '</span>' +
+        '<span class="t" style="color:var(--magenta);">⌈</span>' + nHtml +
+        '<div class="bar ' + cc + '"><i style="width:' + w3 + '%"></i></div>';
+    } else if (bench.value_kind === 'ratio' && mm.value != null) {
+      var w4 = Math.max(2, mm.value * 100);
+      td.innerHTML = '<span class="v ' + cc + '">' + fmtRatio(mm.value) + '</span>' + mark + nHtml +
+        '<div class="bar ' + cc + '"><i style="width:' + w4 + '%"></i></div>';
+    } else {
+      var label = mm.label != null ? mm.label : (mm.value != null ? String(mm.value) : '?');
+      td.innerHTML = '<span class="v ' + cc + '">' + escapeHtml(label) + '</span>' + mark + nHtml;
+    }
+
+    var tip = m.name + ' · ' + bench.title;
+    if (vm === 'max') tip += ' · ceiling (max over all conditions)';
+    if (st.dev && st.dev.length) tip += ' · deviates: ' + st.dev.join(', ');
+    if (mm.notes) tip += ' — ' + mm.notes;
+    td.title = tip;
+    return td;
+  }
+
+  /* ---------- popovers (generated) ---------- */
+  function buildPopovers() {
+    var box = document.getElementById('popovers');
+    box.innerHTML = '';
+    box.appendChild(makePop('pop-models', 'Model selection',
+      'Open-weight families with frontier comparators held alongside for reference. Row order is the rank field, not score.'));
+    state.benches.forEach(function (b) {
+      var sub = [];
+      if (b.n != null) sub.push('n=' + b.n);
+      if (b.metric) sub.push(b.metric);
+      box.appendChild(makePop('pop-bench-' + escapeHtml(b.id), b.title,
+        (sub.length ? sub.join(' · ') + '. ' : '') + (b.description || '')));
+    });
+    state.models.forEach(function (m) {
+      box.appendChild(makePop('pop-model-' + escapeHtml(m.id), m.name, m.profile || ''));
+    });
+  }
+  function makePop(id, title, body) {
+    var d = document.createElement('div');
+    d.className = 'popover';
+    d.id = id;
+    d.innerHTML = '<h5>' + escapeHtml(title) + '</h5><p>' + escapeHtml(body) + '</p>';
+    return d;
+  }
+
+  /* ---------- popover interaction (delegated) ---------- */
+  var activePop = null, activeBtn = null;
+  function closePop() {
+    if (activePop) activePop.classList.remove('open');
+    if (activeBtn) activeBtn.classList.remove('open');
+    activePop = activeBtn = null;
+  }
+  function wirePopovers() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.info') : null;
+      if (btn) {
+        e.stopPropagation();
+        var pop = document.getElementById(btn.getAttribute('data-pop'));
+        if (!pop) return;
+        if (activePop === pop) { closePop(); return; }
+        closePop();
+        var rect = btn.getBoundingClientRect();
+        pop.style.top = (window.scrollY + rect.bottom + 8) + 'px';
+        pop.style.left = Math.min(window.scrollX + rect.left - 12, window.innerWidth - 400) + 'px';
+        pop.classList.add('open');
+        btn.classList.add('open');
+        activePop = pop; activeBtn = btn;
+        return;
+      }
+      if (activePop && !activePop.contains(e.target)) closePop();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePop(); });
+  }
+
+  /* ---------- drilldown (delegated, real provenance) ---------- */
+  function wireDrilldown() {
+    var table = document.getElementById('board-matrix');
+    table.addEventListener('click', function (e) {
+      var cell = e.target.closest ? e.target.closest('.score-cell[data-run]') : null;
+      if (!cell) return;
+      openDrilldown(cell);
+    });
+  }
+  function openDrilldown(cell) {
+    var d = cellData[cell.getAttribute('data-run')];
+    if (!d) return;
+    document.querySelectorAll('.matrix tr.drilldown').forEach(function (x) { x.parentNode.removeChild(x); });
+    document.querySelectorAll('.score-cell.open').forEach(function (c) { c.classList.remove('open'); });
+
+    var row = cell.closest('tr');
+    var tr = document.createElement('tr');
+    tr.className = 'drilldown';
+    var td = document.createElement('td');
+    td.colSpan = state.benches.length + 1;
+    var clone = document.getElementById('dd-template').content.cloneNode(true);
+
+    var mm = d.meas;
+    var trace = mm.campaign ? 's3://<RESULTS_BUCKET>/' + mm.campaign + '/' : '—';
+    clone.querySelector('.dd-title').textContent = d.model.name + ' · ' + d.bench.title;
+    clone.querySelector('.dd-id').textContent =
+      mm.campaign ? 'campaign ' + mm.campaign + ' · trace ' + trace : 'no campaign recorded';
+    clone.querySelector('.dd-backend').textContent = d.model.profile || '—';
+    clone.querySelector('.dd-parser').textContent  = d.model.family || '—';
+    clone.querySelector('.dd-thinking').textContent =
+      condLabel('thinking', effective(mm.condition, 'thinking')) +
+      (d.dev.indexOf('thinking') >= 0 ? ' (deviation ᵗ)' : '');
+    clone.querySelector('.dd-wall').textContent = mm.completed_at ? 'completed ' + mm.completed_at : '—';
+    clone.querySelector('.dd-cost').textContent = '—';
+
+    var passText;
+    if (d.bench.value_kind === 'ratio' && mm.value != null && mm.n != null) {
+      passText = Math.round(mm.value * mm.n) + ' / ' + mm.n + ' = ' + fmtRatio(mm.value);
+    } else {
+      passText = (mm.label != null ? mm.label : (mm.value != null ? String(mm.value) : '—'));
+    }
+    clone.querySelector('.dd-pass').textContent = passText;
+    clone.querySelector('.dd-fr-ok').textContent  = 'audit · ' + (mm.audit || 'unverified');
+    clone.querySelector('.dd-fr-len').textContent = d.dev.length ? 'deviates: ' + d.dev.join(', ') : 'canonical';
+    clone.querySelector('.dd-fr-cf').textContent  = '';
+    clone.querySelector('.dd-note').textContent   = mm.notes || '—';
+    ['.dd-s1', '.dd-s2', '.dd-s3', '.dd-s4'].forEach(function (sel, i) {
+      clone.querySelector(sel).textContent = i === 0 ? 'Per-task detail not included in board.json' : '';
+    });
+    clone.querySelector('.dd-close').addEventListener('click', function () {
+      if (tr.parentNode) tr.parentNode.removeChild(tr);
+      cell.classList.remove('open');
+    });
+
+    td.appendChild(clone);
+    tr.appendChild(td);
+    row.parentNode.insertBefore(tr, row.nextSibling);
+    cell.classList.add('open');
+    tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ---------- tab nav (static) ---------- */
+  function wireTabs() {
+    document.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var target = tab.getAttribute('data-view');
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        document.querySelectorAll('.view').forEach(function (v) {
+          v.classList.toggle('active', v.getAttribute('data-view-id') === target);
+        });
+        closePop();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  /* ---------- charts (same rendering, data from board.json) ---------- */
+  function chartBenches() {
+    return state.benches.map(function (b, i) {
+      var sub = [];
+      if (b.n != null) sub.push('n=' + b.n);
+      if (b.metric) sub.push(b.metric);
+      return { title: b.title, sub: sub.join(' · '), grp: b.pool, idx: i };
+    });
+  }
+  function measuredAt(ms, thinkingVal) {
+    var cands = filteredMeasurements(ms || []).filter(function (m) {
+      return (m.status || 'measured') === 'measured' && m.value != null &&
+             effective(m.condition, 'thinking') === thinkingVal;
+    });
+    if (!cands.length) return null;
+    var hdef = state.dims.harness && state.dims.harness.default;
+    cands.sort(function (a, b) {
+      return (effective(a.condition, 'harness') === hdef ? 0 : 1) -
+             (effective(b.condition, 'harness') === hdef ? 0 : 1);
+    });
+    return cands[0].value;
+  }
+  function chartModels() {
+    var vm = state.viewMode;
+    return state.models.map(function (m) {
+      var scores = state.benches.map(function (b) {
+        var entry = state.scoreMap[m.id + '|' + b.id];
+        if (!entry) return { kind: 'empty' };
+        if (b.value_kind !== 'ratio') {
+          var st0 = cellState(m.id, b, 'canonical');
+          if (st0.kind === 'measured') return { kind: 'tier', label: st0.m.label || String(st0.m.value) };
+          return { kind: st0.kind === 'tbd' ? 'tbd' : 'empty' };
+        }
+        if (vm === 'max') {
+          var stMax = cellState(m.id, b, 'max');
+          if (stMax.kind !== 'measured') return { kind: stMax.kind === 'tbd' ? 'tbd' : 'empty' };
+          return { kind: 'max', value: stMax.m.value };
+        }
+        if (vm === 'deviation') {
+          var stDev = cellState(m.id, b, 'deviation');
+          if (stDev.kind !== 'measured') return { kind: stDev.kind === 'tbd' ? 'tbd' : 'empty' };
+          return { kind: 'deviation', rows: stDev.allRows || [], refMeas: stDev.refMeas || null };
+        }
+        // canonical — original logic
+        var off = measuredAt(entry.measurements, 'off');
+        var on  = measuredAt(entry.measurements, 'on');
+        if (off == null && on == null) {
+          var st2 = cellState(m.id, b, 'canonical');
+          return { kind: st2.kind === 'tbd' ? 'tbd' : 'empty' };
+        }
+        return { kind: 'num', off: off, on: on };
+      });
+      return { fullName: m.name, names: m.short || { top: m.name, bot: '' }, frontier: m.frontier, scores: scores };
+    });
+  }
+  function groupSeps() {
+    var seps = [];
+    for (var i = 0; i < state.models.length - 1; i++) {
+      var a = state.models[i], b = state.models[i + 1];
+      var ka = a.frontier ? 'f' : 's' + a.spark_group;
+      var kb = b.frontier ? 'f' : 's' + b.spark_group;
+      if (ka !== kb) seps.push(i + 1);
+    }
+    return seps;
+  }
+
+  function renderCharts() {
+    var grid = document.getElementById('charts-grid');
+    if (!grid) return;
+    // Re-entrant: clear and rebuild when view mode changes
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+    var vm      = state.viewMode;
+    var models  = chartModels();
+    var benches = chartBenches();
+    var seps    = groupSeps();
+    var N       = models.length;
+    var cols    = 'repeat(' + N + ', 1fr)';
+
+    benches.forEach(function (bench) {
+      var card = document.createElement('div');
+      card.className = 'chart-card';
+
+      var head = document.createElement('div');
+      head.className = 'chart-head';
+      var h3 = document.createElement('h3'); h3.textContent = bench.title; head.appendChild(h3);
+      var sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = bench.sub; head.appendChild(sub);
+      var grpTag = document.createElement('span');
+      grpTag.className = 'grp-tag ' + bench.grp;
+      grpTag.textContent = bench.grp === 'B' ? 'pool b' : 'pool a';
+      head.appendChild(grpTag);
+      card.appendChild(head);
+
+      var area = document.createElement('div');
+      area.className = 'chart-area';
+
+      var yax = document.createElement('div');
+      yax.className = 'y-axis';
+      ['1.0', '0.5', '0.0'].forEach(function (v) { var s = document.createElement('span'); s.textContent = v; yax.appendChild(s); });
+      area.appendChild(yax);
+
+      var bars = document.createElement('div');
+      bars.className = 'bars';
+      bars.style.gridTemplateColumns = cols;
+
+      [0.25, 0.5, 0.75].forEach(function (frac) {
+        var gl = document.createElement('div'); gl.className = 'gridline'; gl.style.bottom = (frac * 100) + '%'; bars.appendChild(gl);
+      });
+      seps.forEach(function (afterIdx) {
+        var sep = document.createElement('div'); sep.className = 'colsep'; sep.style.left = ((afterIdx / N) * 100) + '%'; bars.appendChild(sep);
+      });
+
+      models.forEach(function (m) {
+        var s = m.scores[bench.idx];
+        var col = document.createElement('div');
+        col.className = 'col' + (m.frontier ? ' frontier' : '');
+        if (!s || s.kind === 'empty') { col.classList.add('empty'); col.textContent = '—'; bars.appendChild(col); return; }
+        if (s.kind === 'tbd')  { col.classList.add('empty'); col.textContent = 'TBD'; bars.appendChild(col); return; }
+        if (s.kind === 'tier') { col.classList.add('empty'); col.textContent = s.label; bars.appendChild(col); return; }
+
+        var stack = document.createElement('div');
+        stack.className = 'stack';
+        var topValue, winner = null;
+
+        if (s.kind === 'max') {
+          // MAX mode: single magenta bar = ceiling value
+          var mv = s.value;
+          var segMx = document.createElement('div'); segMx.className = 'seg max-v'; segMx.style.height = Math.max(1.5, mv * 100) + '%'; stack.appendChild(segMx);
+          topValue = mv.toFixed(3); winner = 'front';
+          col.title = m.fullName + ' · ceiling ' + topValue;
+        } else if (s.kind === 'deviation') {
+          // DEVIATION mode: reference bar + delta segment(s)
+          var rows = s.rows;
+          if (!rows.length) { col.classList.add('empty'); col.textContent = '—'; bars.appendChild(col); return; }
+          var refRow = null;
+          for (var ri = 0; ri < rows.length; ri++) { if (rows[ri].isRef) { refRow = rows[ri]; break; } }
+          // find best (highest value) row for top label
+          var bestRow = rows[0];
+          for (var bi = 1; bi < rows.length; bi++) {
+            if ((rows[bi].m.value || 0) > (bestRow.m.value || 0)) bestRow = rows[bi];
+          }
+          topValue = bestRow.m.value.toFixed(3);
+          if (refRow) {
+            // Base bar — minimum height so a 0.000 reference still shows as
+            // a sliver (distinguishes "measured at zero" from "missing data").
+            var refH = Math.max(1.5, refRow.m.value * 100);
+            var segRef = document.createElement('div'); segRef.className = 'seg dv-ref'; segRef.style.height = refH + '%'; stack.appendChild(segRef);
+            // Delta segments for non-ref rows
+            rows.forEach(function (row) {
+              if (row.isRef || row.m.value == null) return;
+              var delta = row.m.value - refRow.m.value;
+              if (Math.abs(delta) < 0.001) return;
+              var segD = document.createElement('div');
+              if (delta > 0) {
+                segD.className = 'seg dv-delta-pos';
+                segD.style.height = (delta * 100) + '%';
+              } else {
+                segD.className = 'seg dv-delta-neg';
+                segD.style.height = (Math.abs(delta) * 100) + '%';
+              }
+              stack.appendChild(segD);
+            });
+            winner = (bestRow.m.value >= refRow.m.value) ? 'on' : 'off';
+            col.title = m.fullName + ' · ref: ' + refRow.m.value.toFixed(3) + ' → best: ' + topValue;
+          } else {
+            // No reference: show single bar for best value
+            var segDv = document.createElement('div'); segDv.className = 'seg dv-only'; segDv.style.height = Math.max(1.5, bestRow.m.value * 100) + '%'; stack.appendChild(segDv);
+            col.title = m.fullName + ' · ' + topValue + ' (no ref)';
+          }
+        } else {
+          // CANONICAL mode — original logic
+          var off = (s.off !== null && !isNaN(s.off)) ? s.off : null;
+          var on  = (s.on  !== null && !isNaN(s.on))  ? s.on  : null;
+          if (off === null && on === null) { col.classList.add('empty'); col.textContent = '—'; bars.appendChild(col); return; }
+          if (m.frontier) {
+            var fv = (on !== null) ? on : off;
+            var segF = document.createElement('div'); segF.className = 'seg front'; segF.style.height = Math.max(1.5, fv * 100) + '%'; stack.appendChild(segF);
+            topValue = fv.toFixed(3); winner = 'front';
+          } else if (off !== null && on !== null) {
+            var lo = Math.min(off, on), hi = Math.max(off, on), helps = (on > off);
+            var segB = document.createElement('div'); segB.className = 'seg ' + (helps ? 'off' : 'on'); segB.style.height = Math.max(1.5, lo * 100) + '%'; stack.appendChild(segB);
+            var segD2 = document.createElement('div'); segD2.className = 'seg ' + (helps ? 'on-delta' : 'off'); segD2.style.height = ((hi - lo) * 100) + '%'; stack.appendChild(segD2);
+            topValue = hi.toFixed(3); winner = helps ? 'on' : 'off';
+            if (!helps) col.classList.add('hurts');
+          } else {
+            var single = (off !== null) ? off : on;
+            var segS = document.createElement('div'); segS.className = 'seg ' + ((off !== null) ? 'off-only' : 'on'); segS.style.height = Math.max(1.5, single * 100) + '%'; stack.appendChild(segS);
+            topValue = single.toFixed(3);
+          }
+          if (off !== null && on !== null && !m.frontier) {
+            col.title = m.fullName + ' · on: ' + on.toFixed(3) + ' / off (ᵗ): ' + off.toFixed(3);
+          } else {
+            col.title = m.fullName + ' · ' + (topValue || '');
+          }
+        }
+        col.appendChild(stack);
+
+        var vtop = document.createElement('div');
+        vtop.className = 'vtop' + (winner ? ' wn-' + winner : '');
+        vtop.textContent = (winner === 'on' ? '▲ ' : winner === 'off' ? '▼ ' : '') + (topValue || '');
+        col.appendChild(vtop);
+
+        bars.appendChild(col);
+      });
+      area.appendChild(bars);
+
+      var lbls = document.createElement('div');
+      lbls.className = 'labels';
+      lbls.style.gridTemplateColumns = cols;
+      models.forEach(function (m) {
+        var lbl = document.createElement('div');
+        lbl.className = 'lbl' + (m.frontier ? ' frontier' : '');
+        var top = document.createElement('span'); top.textContent = m.names.top; lbl.appendChild(top);
+        if (m.names.bot) { var bot = document.createElement('span'); bot.className = 'row2'; bot.textContent = m.names.bot; lbl.appendChild(bot); }
+        lbls.appendChild(lbl);
+      });
+      area.appendChild(lbls);
+      card.appendChild(area);
+
+      var legend = document.createElement('div');
+      legend.className = 'legend';
+      var legendItems;
+      if (vm === 'max') {
+        legendItems = [{ cls: 'front', txt: 'max(value) — ceiling, not cross-comparable' }];
+      } else if (vm === 'deviation') {
+        legendItems = [
+          { cls: 'off', txt: 'reference (axis default)' },
+          { cls: 'on', txt: 'delta positive (uplift)' },
+          { cls: 'front', txt: 'no reference available' }
+        ];
+      } else {
+        legendItems = [{ cls: 'off', txt: 'thinking-off (ᵗ)' }, { cls: 'on', txt: 'thinking-on' }, { cls: 'front', txt: 'frontier (native on)' }];
+      }
+      legendItems.forEach(function (it) {
+        var k = document.createElement('div'); k.className = 'key';
+        var sw = document.createElement('span'); sw.className = 'swatch ' + it.cls; k.appendChild(sw);
+        k.appendChild(document.createTextNode(it.txt)); legend.appendChild(k);
+      });
+      card.appendChild(legend);
+      grid.appendChild(card);
+    });
+  }
+
+  /* ---------- meta + boot ---------- */
+  function hydrateMeta() {
+    var live = 0, dev = 0, tbd = 0;
+    state.models.forEach(function (m) {
+      state.benches.forEach(function (b) {
+        var st = cellState(m.id, b, 'canonical');
+        if (st.kind === 'measured') { live++; if (st.dev && st.dev.length) dev++; }
+        else if (st.kind === 'tbd') tbd++;
+      });
+    });
+    var box = document.getElementById('board-meta');
+    if (box) {
+      box.innerHTML = state.models.length + ' models · ' + state.benches.length + ' benchmarks · ' +
+        '<span class="phos">' + live + ' cells live</span> · ' +
+        '<span class="amber">' + dev + ' deviating</span> · ' +
+        '<span class="vermil">' + tbd + ' TBD</span>';
+    }
+    var revText = (state.generated_at ? state.generated_at.slice(0, 10) : '') + (state.rev ? ' · ' + state.rev : '');
+    if (revText) { setText('rev-tag', revText); setText('footer-rev', 'rev ' + revText + ' · <MAINTAINER_EMAIL>'); }
+  }
+
+  /* ---------- view-mode switcher + per-dim filter chips ---------- */
+  function initFilters() {
+    state.filters = {};
+    Object.keys(state.dims).forEach(function (dim) {
+      var d = state.dims[dim];
+      if (!d.values || !d.values.length) return;
+      var f = {};
+      d.values.forEach(function (v) { f[v] = true; });
+      state.filters[dim] = f;
+    });
+  }
+
+  function buildFilters() {
+    var box = document.getElementById('filters-bar');
+    if (!box) return;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var dims = state.dims;
+    // Only render chip rows for dims that actually carry data on the board —
+    // skips legacy/unused dims the schema declares but nothing currently uses.
+    var dimKeys = Object.keys(dims).filter(function (k) { return dims[k].values && dims[k].values.length; });
+    dimKeys.forEach(function (dim) {
+      var d = dims[dim];
+      var row = document.createElement('div');
+      row.className = 'filter-row';
+      var lbl = document.createElement('span');
+      lbl.className = 'filter-label';
+      lbl.textContent = (d.label || dim) + ':';
+      row.appendChild(lbl);
+      d.values.forEach(function (val) {
+        var label = (d.value_labels && d.value_labels[val]) || val;
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'filter-chip' + (state.filters[dim] && state.filters[dim][val] ? ' active' : '');
+        chip.setAttribute('data-dim', dim);
+        chip.setAttribute('data-val', val);
+        var mark = document.createElement('span');
+        mark.className = 'chip-mark';
+        mark.textContent = chip.classList.contains('active') ? '✓' : '·';
+        chip.appendChild(mark);
+        chip.appendChild(document.createTextNode(label));
+        chip.addEventListener('click', function () {
+          state.filters[dim] = state.filters[dim] || {};
+          var isActive = chip.classList.toggle('active');
+          if (isActive) state.filters[dim][val] = true;
+          else delete state.filters[dim][val];
+          mark.textContent = isActive ? '✓' : '·';
+          rerenderEverything();
+        });
+        row.appendChild(chip);
+      });
+      box.appendChild(row);
+    });
+    // small hint line at the bottom
+    var hint = document.createElement('div');
+    hint.className = 'filters-hint';
+    hint.textContent = 'Filter measurements by condition. Default = all values shown. Toggle chips to narrow what each cell considers.';
+    box.appendChild(hint);
+  }
+
+  // A measurement passes the active filters iff for every dim it explicitly
+  // pins, that dim's value is currently selected. Unpinned dims always pass
+  // (so canonical-omitted-axis benches keep working).
+  function measurementPasses(m) {
+    var cond = m && m.condition;
+    for (var dim in state.filters) {
+      if (!cond || cond[dim] == null) continue;
+      if (!state.filters[dim][cond[dim]]) return false;
+    }
+    return true;
+  }
+  function filteredMeasurements(ms) {
+    return (ms || []).filter(measurementPasses);
+  }
+
+  function rerenderEverything() {
+    cellData = {};
+    buildMatrix();
+    renderCharts();
+    hydrateMeta();
+  }
+
+  function applyViewMode(vm) {
+    state.viewMode = vm;
+    document.querySelectorAll('.vm-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-vm') === vm);
+    });
+    var maxCav = document.getElementById('max-caveat');
+    if (maxCav) maxCav.classList.toggle('visible', vm === 'max');
+    rerenderEverything();
+  }
+
+  function wireViewMode() {
+    initFilters();
+    buildFilters();
+    document.querySelectorAll('.vm-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var vm = btn.getAttribute('data-vm');
+        if (vm === state.viewMode) return;
+        applyViewMode(vm);
+      });
+    });
+  }
+
+  function boot(data) {
+    // enforce the id contract before any id reaches a DOM id/attribute
+    var badId = (data.models || []).map(function (m) { return m.id; })
+      .concat((data.benches || []).map(function (b) { return b.id; }))
+      .filter(function (id) { return !ID_RE.test(String(id == null ? '' : id)); });
+    if (badId.length) throw new Error('invalid model/bench id(s): ' + badId.join(', '));
+
+    state.dims    = data.condition_dims || {};
+    state.benches = (data.benches || []);
+    state.models  = (data.models || []).slice().sort(function (a, b) { return (a.rank || 0) - (b.rank || 0); });
+    state.rev     = data.rev || '';
+    state.generated_at = data.generated_at || '';
+    state.scoreMap = {};
+    (data.scores || []).forEach(function (s) { state.scoreMap[s.model_id + '|' + s.bench_id] = s; });
+
+    buildMatrix();
+    buildPopovers();
+    hydrateMeta();
+    wirePopovers();
+    wireDrilldown();
+    wireTabs();
+    wireViewMode();
+    renderCharts();
+  }
+
+  function showError(err, url) {
+    var msg = 'Failed to load board data from "' + url + '": ' + err.message +
+      '. For a local dry-run, serve docs/board/ (e.g. python3 -m http.server) and open index.html?data=board.sample.json.';
+    var table = document.getElementById('board-matrix');
+    if (table) table.innerHTML = '<tbody><tr><td style="padding:24px;color:var(--vermil);">' + escapeHtml(msg) + '</td></tr></tbody>';
+    var grid = document.getElementById('charts-grid');
+    if (grid) grid.innerHTML = '<div style="padding:24px;color:var(--ink-faint);">' + escapeHtml(msg) + '</div>';
+    setText('board-meta', 'data load error');
+  }
+
+  if (DATA_URL === null) {
+    showError(new Error('?data= must be a same-origin relative path (no scheme, //, or ..)'), String(params.get('data')));
+  } else {
+    fetch(DATA_URL, { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(boot)
+      .catch(function (err) { showError(err, DATA_URL); });
+  }
+})();
+</script>
+
+</body>
+</html>

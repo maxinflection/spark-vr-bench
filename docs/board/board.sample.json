@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-24T20:00:00Z",
+  "rev": "r18-sample",
+  "condition_dims": {
+    "thinking": {
+      "label": "Thinking",
+      "values": ["off", "on"],
+      "default": "off",
+      "value_labels": { "off": "thinking-off (ᵗ)", "on": "thinking-on" }
+    },
+    "harness": {
+      "label": "Harness",
+      "values": ["stock", "<ISSUE>"],
+      "default": "stock",
+      "value_labels": { "stock": "stock", "<ISSUE>": "bd-227 patched" }
+    },
+    "max_turns": {
+      "label": "Max turns",
+      "values": ["30", "150", "300"],
+      "default": "300",
+      "value_labels": { "150": "150 (cost-reduced)", "300": "300 (canonical loop)" }
+    },
+    "context": {
+      "label": "Context",
+      "values": ["128k", "256k", "1m"],
+      "default": "256k"
+    }
+  },
+  "models": [
+    {
+      "id": "qwen3.6-27b-fp8",
+      "name": "Qwen3.6 27B Dense",
+      "short": { "top": "Qwen", "bot": "27B" },
+      "family": "qwen",
+      "params_total_b": 27, "params_active_b": 27, "is_moe": false,
+      "quant": "fp8", "spark_group": 1, "frontier": false,
+      "profile": "FP8 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 1, "tags": ["DENSE"]
+    },
+    {
+      "id": "gemma4-31b-nvfp4",
+      "name": "Gemma 4 31B Dense",
+      "short": { "top": "Gemma", "bot": "31B" },
+      "family": "gemma",
+      "params_total_b": 31, "params_active_b": 31, "is_moe": false,
+      "quant": "nvfp4", "spark_group": 1, "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=1 · 128K ctx",
+      "rank": 3, "tags": ["DENSE"]
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "short": { "top": "DS", "bot": "V4" },
+      "family": "deepseek",
+      "params_total_b": 284, "params_active_b": 13, "is_moe": true,
+      "quant": "nvfp4", "spark_group": 2, "frontier": false,
+      "profile": "284B-A13B · planned NVFP4 · TP=2 · 256K ctx · scheduled <CAMPAIGN>",
+      "rank": 8, "tags": ["MOE"]
+    },
+    {
+      "id": "opus-4-7",
+      "name": "Opus 4.7",
+      "short": { "top": "Opus", "bot": "4.7" },
+      "family": "anthropic",
+      "is_moe": false, "spark_group": null, "frontier": true,
+      "profile": "Bedrock us-east-1 cross-region · direct-API for SEC-bench (CVP-approved)",
+      "rank": 9, "tags": ["FRONTIER"]
+    }
+  ],
+  "benches": [
+    {
+      "id": "humaneval-plus", "title": "HumanEval+", "n": 164, "pool": "B", "family": "code",
+      "metric": "pass@1", "value_kind": "ratio", "higher_is_better": true,
+      "description": "Expanded HumanEval with hardened tests. Authors (EvalPlus, NeurIPS 2023) pin greedy pass@1 but specify NO thinking mode (predates reasoning models) — so canonical_condition is omitted on our axes. thinking=off (ᵗ) is a factual label, not a deviation-from-canonical. Running thinking-on is a house default, not the authors' protocol."
+    },
+    {
+      "id": "ifeval", "title": "IFEval", "n": 541, "pool": "B", "family": "code",
+      "metric": "prompt-strict", "value_kind": "ratio",
+      "description": "Prompt-level strict instruction-following. Authors pin greedy / strict-accuracy, NO thinking mode → canonical_condition omitted. Note: thinking-on can LOWER strict-accuracy here (visible think-blocks violate output-format instructions)."
+    },
+    {
+      "id": "cve-bench", "title": "CVE-Bench", "n": 40, "pool": "A", "family": "vr",
+      "metric": "exploit-success", "value_kind": "ratio",
+      "canonical_condition": { "max_turns": "30" },
+      "description": "Live exploit vs containerized stack, 8-outcome /done oracle (Inspect AI + ReAct). Authors pin max_messages=30 and the project matches it — the one Pool A bench with NO budget deviation. Scaffold (Inspect) is fixed per bench, not a swept axis."
+    },
+    {
+      "id": "sec-bench", "title": "SEC-bench", "n": 11, "pool": "A", "family": "vr",
+      "metric": "diff-sanitizer", "value_kind": "ratio",
+      "description": "Differential sanitizer on patched build. canonical_condition OMITTED: authors do not pin a step budget, AND the project runs smolagents while the authors use SWE-agent/OpenHands/Aider — so every current cell is harness-divergent and NOT comparable to upstream baselines. The harness axis here (stock vs <ISSUE>) is a within-smolagents patch variation, not the authors' scaffold."
+    },
+    {
+      "id": "exploitbench-14", "title": "ExploitBench-14", "n": null, "pool": "A", "family": "vr",
+      "metric": "capability-tier", "value_kind": "tier",
+      "canonical_condition": { "max_turns": "300", "context": "128k" },
+      "description": "16-flag capability bitmap, >=T1 reach (ExploitBench, arXiv:2605.14153). Authors' canonical = 300 turns / >=128K ctx. The project's 100-turn screening runs are a deviation AND structurally zero (agents never reach grade() under ~300 turns, per the project spike) — publish only 300-turn cells."
+    }
+  ],
+  "scores": [
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        { "condition": { "thinking": "off", "harness": "stock" }, "value": 0.878, "n": 164, "status": "measured", "campaign": "<CAMPAIGN>-qwen36-27b-fp8", "completed_at": "2026-05-22T17:40:54Z", "audit": "replay-verified", "notes": "Bandage run (deviates on thinking)." },
+        { "condition": { "thinking": "on", "harness": "stock" }, "value": 0.918, "n": 164, "status": "measured", "campaign": "<CAMPAIGN>-qwen36-27b-fp8-thinkon", "completed_at": "2026-05-23T01:10:00Z", "audit": "replay-verified", "notes": "Canonical (matches bench canonical_condition); this is the headline number." }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "ifeval",
+      "measurements": [
+        { "condition": { "thinking": "off", "harness": "stock" }, "value": 0.861, "n": 541, "status": "measured", "campaign": "<CAMPAIGN>-qwen36-27b-fp8", "audit": "replay-verified", "notes": "Bandage deviation — scores HIGHER than canonical here." },
+        { "condition": { "thinking": "on", "harness": "stock" }, "value": 0.842, "n": 541, "status": "measured", "campaign": "<CAMPAIGN>-qwen36-27b-fp8-thinkon", "audit": "replay-verified", "notes": "Canonical. The board reports THIS as the headline even though the bandage looked better — honesty over flattery." }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        { "condition": { "thinking": "off", "harness": "stock", "max_turns": "30" }, "value": 0.091, "n": 11, "status": "measured", "campaign": "<CAMPAIGN>-gemma31-secbench11-2026-05-19", "audit": "replay-verified", "notes": "smolagents, project default max_steps=30. 1/11 (gpac.cve-2023-5586). Harness-divergent from authors' SWE-agent/OpenHands/Aider." },
+        { "condition": { "thinking": "off", "harness": "<ISSUE>", "max_turns": "30" }, "value": 0.091, "n": 11, "status": "measured", "campaign": "<CAMPAIGN>-gemma31-secbench11-<ISSUE>-2026-05-19", "audit": "replay-verified", "notes": "Harness-uplift study (varies the harness axis: stock-><ISSUE> patch): same 1/11 count, DIFFERENT passing instance (gpac.cve-2024-0321). Net-zero on aggregate, non-zero on which-instance-passes." }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "exploitbench-14",
+      "measurements": [
+        { "condition": { "thinking": "off", "harness": "stock", "max_turns": "300" }, "value": null, "label": "TBD", "status": "tbd", "notes": "Full ExploitBench batch cost-gated; scheduled later." }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "humaneval-plus",
+      "measurements": []
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        { "condition": { "thinking": "on", "harness": "stock" }, "value": 0.939, "n": 164, "status": "measured", "campaign": "frontier-poolb-2026-05", "audit": "replay-verified", "notes": "Canonical — native thinking-on, no bandage, no marker." }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "sec-bench",
+      "measurements": [
+        { "condition": { "thinking": "on", "harness": "stock", "max_turns": "30" }, "value": 0.455, "n": 11, "status": "measured", "campaign": "opus47direct-secbench11-postcvp", "audit": "replay-verified", "notes": "Frontier reference via direct-API (CVP-approved). Same smolagents scaffold as open-weight rows — internally comparable, but still harness-divergent from SEC-bench authors' baseline." }
+      ]
+    }
+  ]
+}

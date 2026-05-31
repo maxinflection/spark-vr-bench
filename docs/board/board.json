@@ -1,0 +1,2019 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-31T00:54:41Z",
+  "rev": "r18",
+  "condition_dims": {
+    "thinking": {
+      "label": "Thinking",
+      "values": [
+        "off",
+        "on"
+      ],
+      "default": "off",
+      "value_labels": {
+        "off": "thinking-off (ᵗ)",
+        "on": "thinking-on"
+      }
+    },
+    "harness": {
+      "label": "Harness",
+      "values": [
+        "stock",
+        "<ISSUE>"
+      ],
+      "default": "stock",
+      "value_labels": {
+        "stock": "stock",
+        "<ISSUE>": "bd-227+bd-55z patched"
+      }
+    },
+    "max_turns": {
+      "label": "Max turns",
+      "values": [
+        "30",
+        "100",
+        "150",
+        "300"
+      ],
+      "default": "300",
+      "value_labels": {
+        "150": "150 (cost-reduced)",
+        "300": "300 (canonical loop)"
+      }
+    },
+    "context": {
+      "label": "Context",
+      "values": [
+        "128k",
+        "256k",
+        "1m"
+      ],
+      "default": "256k"
+    }
+  },
+  "models": [
+    {
+      "id": "qwen3.6-27b-fp8",
+      "name": "Qwen3.6 27B Dense",
+      "short": {
+        "top": "Qwen",
+        "bot": "27B"
+      },
+      "family": "qwen",
+      "params_total_b": 27,
+      "params_active_b": 27,
+      "is_moe": false,
+      "quant": "fp8",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "FP8 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 1,
+      "tags": [
+        "DENSE"
+      ]
+    },
+    {
+      "id": "qwen3.6-35b-a3b-fp8",
+      "name": "Qwen3.6 35B-A3B (MoE)",
+      "short": {
+        "top": "Qwen",
+        "bot": "35B"
+      },
+      "family": "qwen",
+      "params_total_b": 35,
+      "params_active_b": 3,
+      "is_moe": true,
+      "quant": "fp8",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "FP8 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 2,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "gemma4-31b-nvfp4",
+      "name": "Gemma 4 31B Dense",
+      "short": {
+        "top": "Gemma",
+        "bot": "31B"
+      },
+      "family": "gemma",
+      "params_total_b": 31,
+      "params_active_b": 31,
+      "is_moe": false,
+      "quant": "nvfp4",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=1 · 256K ctx · TRITON_ATTN (SM120)",
+      "rank": 3,
+      "tags": [
+        "DENSE"
+      ]
+    },
+    {
+      "id": "gemma4-26b-a4b-nvfp4",
+      "name": "Gemma 4 26B-A4B (MoE)",
+      "short": {
+        "top": "Gemma",
+        "bot": "26B"
+      },
+      "family": "gemma",
+      "params_total_b": 26,
+      "params_active_b": 4,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 4,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "nemotron3-super-120b-a12b-nvfp4",
+      "name": "Nemotron 3 Super 120B-A12B (MoE)",
+      "short": {
+        "top": "Nemo",
+        "bot": "120B"
+      },
+      "family": "nemotron",
+      "params_total_b": 120,
+      "params_active_b": 12,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=2 · 256K ctx",
+      "rank": 5,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "qwen3.5-122b-a10b-nvfp4",
+      "name": "Qwen3.5 122B-A10B (MoE)",
+      "short": {
+        "top": "Qwen",
+        "bot": "122B"
+      },
+      "family": "qwen",
+      "params_total_b": 122,
+      "params_active_b": 10,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=2 · 256K ctx",
+      "rank": 6,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "qwen3-235b-a22b-thinking-awq",
+      "name": "Qwen3 235B-A22B Thinking",
+      "short": {
+        "top": "Qwen",
+        "bot": "235B"
+      },
+      "family": "qwen",
+      "params_total_b": 235,
+      "params_active_b": 22,
+      "is_moe": true,
+      "quant": "awq-int4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "AWQ-INT4 · vLLM 0.21 · TP=8 · 256K ctx · native thinking",
+      "rank": 7,
+      "tags": [
+        "MOE",
+        "THINKING"
+      ]
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "short": {
+        "top": "DS",
+        "bot": "V4"
+      },
+      "family": "deepseek",
+      "params_total_b": 284,
+      "params_active_b": 13,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "284B-A13B · planned NVFP4 · TP=2 · 256K ctx · scheduled <CAMPAIGN>",
+      "rank": 8,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "opus-4-7",
+      "name": "Opus 4.7",
+      "short": {
+        "top": "Opus",
+        "bot": "4.7"
+      },
+      "family": "anthropic",
+      "is_moe": false,
+      "spark_group": null,
+      "frontier": true,
+      "profile": "Bedrock us-east-1 cross-region · direct-API for SEC-bench (CVP-approved)",
+      "rank": 9,
+      "tags": [
+        "FRONTIER"
+      ]
+    },
+    {
+      "id": "gpt-5-5",
+      "name": "GPT-5.5",
+      "short": {
+        "top": "GPT",
+        "bot": "5.5"
+      },
+      "family": "openai",
+      "is_moe": false,
+      "spark_group": null,
+      "frontier": true,
+      "profile": "OpenAI API (direct)",
+      "rank": 10,
+      "tags": [
+        "FRONTIER"
+      ]
+    }
+  ],
+  "benches": [
+    {
+      "id": "humaneval-plus",
+      "title": "HumanEval+",
+      "n": 164,
+      "pool": "B",
+      "family": "code",
+      "metric": "pass@1",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "Expanded HumanEval with hardened tests. Authors (EvalPlus, NeurIPS 2023) pin greedy pass@1 but specify NO thinking mode (predates reasoning models) — so canonical_condition is omitted on our axes. thinking=off (ᵗ) is a factual label, not a deviation-from-canonical."
+    },
+    {
+      "id": "ifeval",
+      "title": "IFEval",
+      "n": 541,
+      "pool": "B",
+      "family": "code",
+      "metric": "prompt-strict",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "Prompt-level strict instruction-following (lm-eval-harness prompt_level_strict_acc). Authors pin greedy / strict-accuracy, NO thinking mode → canonical_condition omitted. Note: thinking-on can LOWER strict-accuracy here (visible think-blocks violate output-format instructions)."
+    },
+    {
+      "id": "bigcodebench-hard",
+      "title": "BCB-Hard",
+      "n": 148,
+      "pool": "B",
+      "family": "code",
+      "metric": "pass@1",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "BigCodeBench Hard subset (Instruct split, calibrated pass@1) via the bigcodebench docker evaluator. Authors pin greedy/pass@1, NO thinking mode → canonical_condition omitted."
+    },
+    {
+      "id": "cybergym",
+      "title": "CyberGym",
+      "n": 10,
+      "pool": "A",
+      "family": "vr",
+      "metric": "PoC-repro",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "100"
+      },
+      "description": "PoC reproduces the sanitizer crash on a 10-task representative subset (no LLM judge). OpenHands CodeActAgent, max_iter=100 (matches the documented CLI; 10-vs-100 upstream ambiguity). Wall-time 7200s vs authors' 1200s."
+    },
+    {
+      "id": "sec-bench",
+      "title": "SEC-bench",
+      "n": 11,
+      "pool": "A",
+      "family": "vr",
+      "metric": "diff-sanitizer",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "harness": "stock",
+        "max_turns": "30"
+      },
+      "description": "Differential sanitizer on the patched build, 11-task pre-pulled subset (→50, bd <ISSUE>). Project-canonical = stock smolagents harness at max_turns=30 (the unpatched scaffold an outside observer would reproduce). <ISSUE> measurements are the project's harness-patch uplift, marked as harness-axis deviations from canonical and surfaced in the max/ceiling view. ALL cells are still harness-divergent from upstream authors (who use SWE-agent/OpenHands/Aider), so absolute numbers are not directly cross-comparable to published author baselines."
+    },
+    {
+      "id": "cve-bench",
+      "title": "CVE-Bench",
+      "n": 40,
+      "pool": "A",
+      "family": "vr",
+      "metric": "exploit-success",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "30",
+        "thinking": "off"
+      },
+      "description": "Live exploit vs containerized stack, 8-outcome /done oracle (Inspect AI + ReAct). Authors pin max_messages=30 and the project matches it — the one Pool A bench with NO budget deviation. Project-canonical is thinking-off (the open-weight harness-bandage default); thinking-on runs show as a marked deviation in canonical view and as the ceiling in the max view. Frontier models (natively thinking-on) will be marked as deviating on the thinking axis — accurate to the condition, not a quality judgement."
+    },
+    {
+      "id": "exploitbench-14",
+      "title": "ExploitBench-14",
+      "n": null,
+      "pool": "A",
+      "family": "vr",
+      "metric": "capability-tier",
+      "value_kind": "tier",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "300",
+        "context": "128k"
+      },
+      "description": "16-flag capability bitmap, ≥T1 reach (ExploitBench, arXiv:2605.14153). Authors' canonical = 300 turns / ≥128K ctx. The project's 100-turn screening runs are a deviation AND structurally zero (agents never reach grade() under ~300 turns) — publish only 300-turn cells. Deferred (rental wall-time prohibitive); column stays TBD."
+    }
+  ],
+  "scores": [
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.6951219512195121,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-qwen36-27b-fp8",
+          "completed_at": "2026-05-09T21:03:51Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 1,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-qwen36-62l-2026-05-11",
+          "completed_at": "2026-05-11T15:23:31Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8780487804878049,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-retry",
+          "completed_at": "2026-05-11T02:38:40Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 1,
+          "n": 10,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-retry-smoke",
+          "completed_at": "2026-05-10T11:02:21Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8841463414634146,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-24T22:47:35Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2920517560073937,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-qwen36-27b-fp8",
+          "completed_at": "2026-05-10T01:07:00Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 1,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-qwen36-62l-2026-05-11",
+          "completed_at": "2026-05-11T15:24:23Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8613678373382625,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-retry",
+          "completed_at": "2026-05-11T03:41:35Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9,
+          "n": 10,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-retry-smoke",
+          "completed_at": "2026-05-10T11:03:44Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8632162661737524,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-25T01:03:16Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.033783783783783786,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-qwen36-27b-fp8",
+          "completed_at": "2026-05-10T02:16:56Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.30405405405405406,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-qwen36-62l-2026-05-11",
+          "completed_at": "2026-05-11T15:54:26Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.13513513513513514,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-retry",
+          "completed_at": "2026-05-11T07:12:04Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.2702702702702703,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-25T05:21:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.2,
+          "n": 10,
+          "campaign": "qwen36-27b-cybergym10-2026-05-16",
+          "completed_at": "2026-05-16T23:06:26Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.2,
+          "n": 10,
+          "campaign": "qwen36-27b-cybergym10-thinking-on-2026-05-16",
+          "completed_at": "2026-05-17T00:10:33Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0.2727272727272727,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-25",
+          "completed_at": "2026-05-25T14:40:51Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "qwen36-27b-secbench11-256k-2026-05-18",
+          "completed_at": "2026-05-18T10:56:01Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.15,
+          "n": 40,
+          "campaign": "to4-qwen36-27b-cvebench-2026-05-29",
+          "completed_at": "2026-05-29T08:24:37Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0.15,
+          "n": 40,
+          "campaign": "to4-qwen36-27b-cvebench-thinkingon-2026-05-30",
+          "completed_at": "2026-05-30T04:19:21Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8719512195121951,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12",
+          "completed_at": "2026-05-12T09:58:04Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.9390243902439024,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-24T19:24:49Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8262476894639557,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12",
+          "completed_at": "2026-05-12T10:13:57Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8484288354898336,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-24T22:18:39Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.32432432432432434,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12",
+          "completed_at": "2026-05-12T10:25:45Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.27702702702702703,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-24T23:27:11Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.4,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-qwen36-35b-cybergym10-256k-2026-05-18",
+          "completed_at": "2026-05-18T12:25:15Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0.09090909090909091,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-25",
+          "completed_at": "2026-05-25T13:52:25Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-qwen36-35b-secbench11-256k-2026-05-18",
+          "completed_at": "2026-05-18T12:27:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.1,
+          "n": 40,
+          "campaign": "to4-qwen36-35b-a3b-cvebench-2026-05-29",
+          "completed_at": "2026-05-29T06:56:07Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0.15,
+          "n": 40,
+          "campaign": "to4-qwen36-35b-a3b-cvebench-thinkingon-2026-05-30",
+          "completed_at": "2026-05-30T02:29:27Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9146341463414634,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-gemma31-2026-05-11",
+          "completed_at": "2026-05-11T15:18:37Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9146341463414634,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-gemma4-31b-it-nvfp4",
+          "completed_at": "2026-05-10T01:06:38Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8964879852125693,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-gemma31-2026-05-11",
+          "completed_at": "2026-05-11T16:23:25Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9001848428835489,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-gemma4-31b-it-nvfp4",
+          "completed_at": "2026-05-10T02:12:01Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2905405405405405,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-gemma31-2026-05-11",
+          "completed_at": "2026-05-11T17:09:38Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2905405405405405,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-gemma31-bcbhard-256k-2026-05-19",
+          "completed_at": "2026-05-19T02:48:05Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.30405405405405406,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-gemma4-31b-it-nvfp4",
+          "completed_at": "2026-05-10T02:59:58Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.7,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-gemma31-cybergym10-256k-2026-05-18",
+          "completed_at": "2026-05-19T00:48:28Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0.2727272727272727,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-26",
+          "completed_at": "2026-05-26T22:56:06Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0.09090909090909091,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-gemma31-secbench11-256k-2026-05-18",
+          "completed_at": "2026-05-19T01:55:11Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.15,
+          "n": 40,
+          "campaign": "to4-gemma31-cvebench-2026-05-29",
+          "completed_at": "2026-05-29T05:17:52Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0.2,
+          "n": 40,
+          "campaign": "to4-gemma31-cvebench-thinkingon-2026-05-30",
+          "completed_at": "2026-05-30T07:15:43Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9146341463414634,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-nvfp4",
+          "completed_at": "2026-05-10T02:39:18Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 1,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "smoke-<CAMPAIGN>-<CAMPAIGN>-2026-05-09",
+          "completed_at": "2026-05-09T02:26:46Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.88909426987061,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-nvfp4",
+          "completed_at": "2026-05-10T02:59:23Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 1,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "smoke-<CAMPAIGN>-<CAMPAIGN>-2026-05-09",
+          "completed_at": "2026-05-09T02:27:12Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2635135135135135,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-nvfp4",
+          "completed_at": "2026-05-10T03:15:27Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.25,
+          "n": 148,
+          "status": "smoke",
+          "campaign": "smoke-bap-2026-05-09",
+          "completed_at": "2026-05-09T03:57:54Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0,
+          "n": 0,
+          "status": "smoke",
+          "campaign": "smoke-<CAMPAIGN>-<CAMPAIGN>-2026-05-09",
+          "completed_at": "2026-05-09T02:41:49Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0,
+          "n": 3,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-cybergym-postvllmparser-2026-05-19",
+          "completed_at": "2026-05-19T18:10:50Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0,
+          "n": 3,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-cybergym-t0hsmoke-2026-05-19",
+          "completed_at": "2026-05-19T16:54:50Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-poolA-2026-05-19",
+          "completed_at": "2026-05-19T15:42:12Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-26",
+          "completed_at": "2026-05-26T22:04:43Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-gemma4-26b-a4b-poolA-2026-05-19",
+          "completed_at": "2026-05-19T16:50:24Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.125,
+          "n": 40,
+          "campaign": "to4-gemma26-a4b-cvebench-2026-05-30",
+          "completed_at": "2026-05-30T15:18:08Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9085365853658537,
+          "n": 164,
+          "campaign": "nemotron-3-super-nvfp4-2026-05-12",
+          "completed_at": "2026-05-12T20:57:27Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.9024390243902439,
+          "n": 164,
+          "campaign": "nemotron-3-super-nvfp4-2026-05-12-v2",
+          "completed_at": "2026-05-12T22:57:37Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.926829268292683,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-nemotron-poolb-thinkingon-2026-05-21",
+          "completed_at": "2026-05-21T22:08:36Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2975970425138632,
+          "n": 541,
+          "campaign": "nemotron-3-super-nvfp4-2026-05-12",
+          "completed_at": "2026-05-12T22:10:17Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.7837338262476895,
+          "n": 541,
+          "campaign": "nemotron-3-super-nvfp4-2026-05-12-v2",
+          "completed_at": "2026-05-12T23:37:30Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8170055452865065,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-nemotron-poolb-thinkingon-2026-05-21",
+          "completed_at": "2026-05-21T22:41:43Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2972972972972973,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-nemotron-bcbh-thinkoff-2026-05-22",
+          "completed_at": "2026-05-22T17:40:54Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.28378378378378377,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-nemotron-poolb-thinkingon-2026-05-21",
+          "completed_at": "2026-05-22T00:37:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.4,
+          "n": 10,
+          "campaign": "nemotron-poolA-cybergym10-thinking-off-2026-05-22",
+          "completed_at": "2026-05-23T00:39:22Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.2,
+          "n": 10,
+          "campaign": "nemotron-poolA-cybergym10-thinking-on-2026-05-22",
+          "completed_at": "2026-05-22T23:01:09Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-25",
+          "completed_at": "2026-05-25T14:31:51Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "nemotron-poolA-secbench11-thinking-off-2026-05-22",
+          "completed_at": "2026-05-23T00:29:06Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "nemotron-poolA-secbench11-thinking-on-2026-05-22",
+          "completed_at": "2026-05-22T21:50:10Z"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.1,
+          "n": 40,
+          "campaign": "to4-nemotron120-cvebench-2026-05-30",
+          "completed_at": "2026-05-30T20:32:36Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 9,
+          "campaign": "to4-nemotron120-cvebench-thinkingon-2026-05-30",
+          "completed_at": "2026-05-30T21:33:35Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8719512195121951,
+          "n": 164,
+          "campaign": "qwen3-5-122b-a10b-nvfp4-2026-05-13",
+          "completed_at": "2026-05-13T20:11:54Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8841463414634146,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-24T21:02:39Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8613678373382625,
+          "n": 541,
+          "campaign": "qwen3-5-122b-a10b-nvfp4-2026-05-13",
+          "completed_at": "2026-05-13T20:43:53Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.7929759704251387,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-25T01:57:03Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.2972972972972973,
+          "n": 148,
+          "campaign": "qwen3-5-122b-a10b-nvfp4-2026-05-13",
+          "completed_at": "2026-05-13T20:58:36Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.32432432432432434,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-poolb-thinkingon-2026-05-24",
+          "completed_at": "2026-05-25T02:33:45Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0.09090909090909091,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-25",
+          "completed_at": "2026-05-25T14:48:42Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.1,
+          "n": 40,
+          "campaign": "to4-qwen35-122b-cvebench-2026-05-30",
+          "completed_at": "2026-05-31T00:02:12Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0.125,
+          "n": 16,
+          "campaign": "to4-qwen35-122b-cvebench-thinkingon-2026-05-30",
+          "completed_at": "2026-05-31T00:51:17Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "<CAMPAIGN>-2026-05-15",
+          "completed_at": "2026-05-15T08:25:02Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8109756097560976,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-2026-05-15-rerun",
+          "completed_at": "2026-05-15T19:52:41Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8048780487804879,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-poolB-thinkingon-2026-05-23",
+          "completed_at": "2026-05-24T02:24:35Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.9146341463414634,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-poolB-thinkingon-h100-2026-05-24",
+          "completed_at": "2026-05-24T09:03:52Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.95,
+          "n": 20,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-thinking-on-smoke-2026-05-15",
+          "completed_at": "2026-05-16T05:43:55Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "<CAMPAIGN>-2026-05-15",
+          "completed_at": "2026-05-15T09:41:57Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8299445471349353,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-2026-05-15-rerun",
+          "completed_at": "2026-05-15T21:10:46Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8502772643253235,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-poolB-thinkingon-h100-2026-05-24",
+          "completed_at": "2026-05-24T13:46:53Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.85,
+          "n": 20,
+          "status": "smoke",
+          "campaign": "<CAMPAIGN>-thinking-on-smoke-2026-05-15",
+          "completed_at": "2026-05-16T05:48:28Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "<CAMPAIGN>-2026-05-15",
+          "completed_at": "2026-05-15T17:53:56Z"
+        },
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.28378378378378377,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-2026-05-15-rerun",
+          "completed_at": "2026-05-16T05:31:21Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.07432432432432433,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-poolB-thinkingon-h100-2026-05-24",
+          "completed_at": "2026-05-24T17:05:45Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.6,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-poolA-cybergym10-thinking-off-2026-05-23",
+          "completed_at": "2026-05-24T08:45:08Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.5,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-poolA-<CAMPAIGN>-thinkingoff-2026-05-20",
+          "completed_at": "2026-05-20T17:31:07Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.6,
+          "n": 5,
+          "campaign": "<CAMPAIGN>-poolA-cybergym10-thinking-on-2026-05-23",
+          "completed_at": "2026-05-24T01:21:02Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.7,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-poolA-cybergym10-thinking-on-h100-2026-05-24",
+          "completed_at": "2026-05-24T10:41:38Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.6,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-poolA-<CAMPAIGN>-thinkingon-2026-05-20",
+          "completed_at": "2026-05-20T10:57:08Z"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 8,
+          "campaign": "<CAMPAIGN>-secbench-tp8-2026-05-27",
+          "completed_at": "2026-05-27T09:43:30Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-poolA-secbench11-thinking-off-2026-05-23",
+          "completed_at": "2026-05-24T07:09:23Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-poolA-<CAMPAIGN>-thinkingon-2026-05-20",
+          "completed_at": "2026-05-20T15:14:29Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-poolA-secbench11-thinking-on-2026-05-23",
+          "completed_at": "2026-05-24T00:12:02Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-poolA-secbench11-thinking-on-h100-2026-05-24",
+          "completed_at": "2026-05-24T08:04:37Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8353658536585366,
+          "n": 164,
+          "campaign": "<CAMPAIGN>-v4flash-b300-2026-05-21",
+          "completed_at": "2026-05-21T07:28:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.8964879852125693,
+          "n": 541,
+          "campaign": "<CAMPAIGN>-v4flash-b300-2026-05-21",
+          "completed_at": "2026-05-21T12:24:02Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.3310810810810811,
+          "n": 148,
+          "campaign": "<CAMPAIGN>-v4flash-b300-2026-05-21",
+          "completed_at": "2026-05-21T14:04:49Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "100"
+          },
+          "value": 0.4,
+          "n": 10,
+          "campaign": "<CAMPAIGN>-v4flash-b300-2026-05-21",
+          "completed_at": "2026-05-21T09:22:39Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "<ISSUE>",
+            "max_turns": "30"
+          },
+          "value": 0.2727272727272727,
+          "n": 11,
+          "campaign": "<ISSUE>-<CAMPAIGN>-secbench11-2026-05-26",
+          "completed_at": "2026-05-27T00:01:58Z"
+        },
+        {
+          "condition": {
+            "thinking": "off",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0.09090909090909091,
+          "n": 11,
+          "campaign": "<CAMPAIGN>-v4flash-b300-2026-05-21",
+          "completed_at": "2026-05-21T11:08:00Z"
+        }
+      ]
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off",
+            "max_turns": "30"
+          },
+          "value": 0.2,
+          "n": 40,
+          "campaign": "to4-dsv4-cvebench-2026-05-29",
+          "completed_at": "2026-05-29T13:18:00Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "0em-bump-opus47-humaneval-2026-05-14",
+          "completed_at": "2026-05-14T14:05:48Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 1,
+          "n": 10,
+          "status": "smoke",
+          "campaign": "0em-bump-opus47-humaneval-v2-2026-05-14",
+          "completed_at": "2026-05-14T14:14:08Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.9390243902439024,
+          "n": 164,
+          "campaign": "frontier-poolb-2026-05",
+          "completed_at": "2026-05-08T15:04:06Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.85,
+          "n": 20,
+          "status": "smoke",
+          "campaign": "0em-bump-opus47-ifeval-2026-05-14",
+          "completed_at": "2026-05-14T14:21:33Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8317929759704251,
+          "n": 541,
+          "campaign": "frontier-poolb-2026-05",
+          "completed_at": "2026-05-08T12:36:58Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.4797297297297297,
+          "n": 148,
+          "campaign": "0em-restore-opus47-bcb-hard-2026-05-14",
+          "completed_at": "2026-05-14T15:03:21Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.5067567567567568,
+          "n": 148,
+          "campaign": "opus47-bcb-2026-05-12",
+          "completed_at": "2026-05-12T19:50:40Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.5,
+          "n": 10,
+          "campaign": "opus47-cybergym10-2026-05-16",
+          "completed_at": "2026-05-16T09:59:47Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0,
+          "n": 3,
+          "campaign": "opus47-cybergym3-baseline2-2026-05-14",
+          "completed_at": "2026-05-14T13:30:06Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.6666666666666666,
+          "n": 3,
+          "campaign": "opus47-cybergym3-noop-2026-05-14",
+          "completed_at": "2026-05-14T12:52:37Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.3333333333333333,
+          "n": 3,
+          "campaign": "opus47-cybergym3-postfix-2026-05-14",
+          "completed_at": "2026-05-14T13:58:52Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0,
+          "n": 3,
+          "campaign": "pgf-stage1-opus47-cybergym3-2026-05-14",
+          "completed_at": "2026-05-14T14:18:02Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0,
+          "n": 11,
+          "campaign": "opus47direct-secbench11-2026-05-16",
+          "completed_at": "2026-05-16T17:20:44Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0.45454545454545453,
+          "n": 11,
+          "campaign": "opus47direct-secbench11-postcvp-2026-05-18",
+          "completed_at": "2026-05-18T10:38:40Z"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "cve-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "30"
+          },
+          "value": 0.4,
+          "n": 40,
+          "campaign": "<CAMPAIGN>-cvebench-opus47-2026-05-21",
+          "completed_at": "2026-05-21T23:48:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "0em-bump-gpt55-humaneval-2026-05-14",
+          "completed_at": "2026-05-14T14:16:02Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 1,
+          "n": 10,
+          "status": "smoke",
+          "campaign": "0em-restore-gpt55-humaneval-2026-05-14",
+          "completed_at": "2026-05-14T14:41:04Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.9390243902439024,
+          "n": 164,
+          "campaign": "gpt55-full-2026-05-12",
+          "completed_at": "2026-05-12T03:16:09Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.2,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "gpt55-smoke-2026-05-12",
+          "completed_at": "2026-05-12T02:32:12Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 1,
+          "n": 5,
+          "status": "smoke",
+          "campaign": "gpt55-smoke2-2026-05-12",
+          "completed_at": "2026-05-12T02:57:14Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 1,
+          "n": 20,
+          "status": "smoke",
+          "campaign": "0em-restore-gpt55-ifeval-2026-05-14",
+          "completed_at": "2026-05-14T14:44:56Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.8558225508317929,
+          "n": 541,
+          "campaign": "gpt55-full-2026-05-12",
+          "completed_at": "2026-05-12T04:46:17Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.35135135135135137,
+          "n": 148,
+          "campaign": "0em-restore-gpt55-bcb-hard-2026-05-14",
+          "completed_at": "2026-05-14T15:37:36Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.31756756756756754,
+          "n": 148,
+          "campaign": "gpt55-bcb-2026-05-12",
+          "completed_at": "2026-05-12T10:58:26Z"
+        },
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0,
+          "n": 0,
+          "campaign": "gpt55-full-2026-05-12",
+          "completed_at": "2026-05-12T04:46:18Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.6,
+          "n": 10,
+          "campaign": "gpt55-cybergym10-2026-05-16",
+          "completed_at": "2026-05-16T10:57:57Z"
+        },
+        {
+          "condition": {
+            "thinking": "on",
+            "max_turns": "100"
+          },
+          "value": 0.6666666666666666,
+          "n": 3,
+          "status": "smoke",
+          "campaign": "gpt55-cybergym3-smoke-2026-05-16",
+          "completed_at": "2026-05-16T10:18:24Z"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on",
+            "harness": "stock",
+            "max_turns": "30"
+          },
+          "value": 0.7272727272727273,
+          "n": 11,
+          "campaign": "gpt55-secbench11-2026-05-16",
+          "completed_at": "2026-05-16T16:21:21Z"
+        }
+      ]
+    }
+  ]
+}

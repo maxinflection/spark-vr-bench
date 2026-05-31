@@ -1,0 +1,61 @@
+{
+  "gemma4-26b-a4b-nvfp4": {
+    "bigcodebench-hard": 0.264,
+    "humaneval-plus": 0.915,
+    "ifeval": 0.889,
+    "sec-bench": 0.0
+  },
+  "gemma4-31b-nvfp4": {
+    "bigcodebench-hard": 0.291,
+    "cybergym": 0.7,
+    "humaneval-plus": 0.915,
+    "ifeval": 0.896,
+    "sec-bench": 0.091,
+    "sec-bench-patched": 0.091
+  },
+  "gpt-5-5": {
+    "bigcodebench-hard": 0.351,
+    "cybergym": 0.6,
+    "humaneval-plus": 0.939,
+    "ifeval": 0.856,
+    "sec-bench": 0.727
+  },
+  "nemotron3-super-120b-a12b-nvfp4": {
+    "bigcodebench-hard": 0.318,
+    "humaneval-plus": 0.902,
+    "ifeval": 0.784
+  },
+  "opus-4-7": {
+    "bigcodebench-hard": 0.48,
+    "cybergym": 0.5,
+    "humaneval-plus": 0.939,
+    "ifeval": 0.832,
+    "sec-bench": 0.455
+  },
+  "qwen3-235b-a22b-thinking-awq": {
+    "bigcodebench-hard": 0.284,
+    "exploitbench-14": "T1",
+    "humaneval-plus": 0.811,
+    "ifeval": 0.83,
+    "sec-bench": 0.0
+  },
+  "qwen3.5-122b-a10b-nvfp4": {
+    "bigcodebench-hard": 0.297,
+    "humaneval-plus": 0.872,
+    "ifeval": 0.861
+  },
+  "qwen3.6-27b-fp8": {
+    "bigcodebench-hard": 0.304,
+    "cybergym": 0.2,
+    "humaneval-plus": 0.878,
+    "ifeval": 0.861,
+    "sec-bench": 0.0
+  },
+  "qwen3.6-35b-a3b-fp8": {
+    "bigcodebench-hard": 0.324,
+    "cybergym": 0.4,
+    "humaneval-plus": 0.872,
+    "ifeval": 0.826,
+    "sec-bench": 0.0
+  }
+}

@@ -1,0 +1,927 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-27T00:00:00Z",
+  "rev": "r18-parity",
+  "condition_dims": {
+    "thinking": {
+      "label": "Thinking",
+      "values": [
+        "off",
+        "on"
+      ],
+      "default": "off",
+      "value_labels": {
+        "off": "thinking-off (\u1d57)",
+        "on": "thinking-on"
+      }
+    },
+    "harness": {
+      "label": "Harness",
+      "values": [
+        "stock",
+        "<ISSUE>"
+      ],
+      "default": "stock",
+      "value_labels": {
+        "stock": "stock",
+        "<ISSUE>": "bd-227+bd-55z patched"
+      }
+    },
+    "max_turns": {
+      "label": "Max turns",
+      "values": [
+        "30",
+        "100",
+        "150",
+        "300"
+      ],
+      "default": "300",
+      "value_labels": {
+        "150": "150 (cost-reduced)",
+        "300": "300 (canonical loop)"
+      }
+    },
+    "context": {
+      "label": "Context",
+      "values": [
+        "128k",
+        "256k",
+        "1m"
+      ],
+      "default": "256k"
+    }
+  },
+  "models": [
+    {
+      "id": "qwen3.6-27b-fp8",
+      "name": "Qwen3.6 27B Dense",
+      "short": {
+        "top": "Qwen",
+        "bot": "27B"
+      },
+      "family": "qwen",
+      "params_total_b": 27,
+      "params_active_b": 27,
+      "is_moe": false,
+      "quant": "fp8",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "FP8 \u00b7 vLLM 0.21 \u00b7 TP=1 \u00b7 256K ctx",
+      "rank": 1,
+      "tags": [
+        "DENSE"
+      ]
+    },
+    {
+      "id": "qwen3.6-35b-a3b-fp8",
+      "name": "Qwen3.6 35B-A3B (MoE)",
+      "short": {
+        "top": "Qwen",
+        "bot": "35B"
+      },
+      "family": "qwen",
+      "params_total_b": 35,
+      "params_active_b": 3,
+      "is_moe": true,
+      "quant": "fp8",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "FP8 \u00b7 vLLM 0.21 \u00b7 TP=1 \u00b7 256K ctx",
+      "rank": 2,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "gemma4-31b-nvfp4",
+      "name": "Gemma 4 31B Dense",
+      "short": {
+        "top": "Gemma",
+        "bot": "31B"
+      },
+      "family": "gemma",
+      "params_total_b": 31,
+      "params_active_b": 31,
+      "is_moe": false,
+      "quant": "nvfp4",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "NVFP4 \u00b7 vLLM 0.21 \u00b7 TP=1 \u00b7 256K ctx \u00b7 TRITON_ATTN (SM120)",
+      "rank": 3,
+      "tags": [
+        "DENSE"
+      ]
+    },
+    {
+      "id": "gemma4-26b-a4b-nvfp4",
+      "name": "Gemma 4 26B-A4B (MoE)",
+      "short": {
+        "top": "Gemma",
+        "bot": "26B"
+      },
+      "family": "gemma",
+      "params_total_b": 26,
+      "params_active_b": 4,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 1,
+      "frontier": false,
+      "profile": "NVFP4 \u00b7 vLLM 0.21 \u00b7 TP=1 \u00b7 256K ctx",
+      "rank": 4,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "nemotron3-super-120b-a12b-nvfp4",
+      "name": "Nemotron 3 Super 120B-A12B (MoE)",
+      "short": {
+        "top": "Nemo",
+        "bot": "120B"
+      },
+      "family": "nemotron",
+      "params_total_b": 120,
+      "params_active_b": 12,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "NVFP4 \u00b7 vLLM 0.21 \u00b7 TP=2 \u00b7 256K ctx",
+      "rank": 5,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "qwen3.5-122b-a10b-nvfp4",
+      "name": "Qwen3.5 122B-A10B (MoE)",
+      "short": {
+        "top": "Qwen",
+        "bot": "122B"
+      },
+      "family": "qwen",
+      "params_total_b": 122,
+      "params_active_b": 10,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "NVFP4 \u00b7 vLLM 0.21 \u00b7 TP=2 \u00b7 256K ctx",
+      "rank": 6,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "qwen3-235b-a22b-thinking-awq",
+      "name": "Qwen3 235B-A22B Thinking",
+      "short": {
+        "top": "Qwen",
+        "bot": "235B"
+      },
+      "family": "qwen",
+      "params_total_b": 235,
+      "params_active_b": 22,
+      "is_moe": true,
+      "quant": "awq-int4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "AWQ-INT4 \u00b7 vLLM 0.21 \u00b7 TP=8 \u00b7 256K ctx \u00b7 native thinking",
+      "rank": 7,
+      "tags": [
+        "MOE",
+        "THINKING"
+      ]
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "short": {
+        "top": "DS",
+        "bot": "V4"
+      },
+      "family": "deepseek",
+      "params_total_b": 284,
+      "params_active_b": 13,
+      "is_moe": true,
+      "quant": "nvfp4",
+      "spark_group": 2,
+      "frontier": false,
+      "profile": "284B-A13B \u00b7 planned NVFP4 \u00b7 TP=2 \u00b7 256K ctx \u00b7 scheduled <CAMPAIGN>",
+      "rank": 8,
+      "tags": [
+        "MOE"
+      ]
+    },
+    {
+      "id": "opus-4-7",
+      "name": "Opus 4.7",
+      "short": {
+        "top": "Opus",
+        "bot": "4.7"
+      },
+      "family": "anthropic",
+      "is_moe": false,
+      "spark_group": null,
+      "frontier": true,
+      "profile": "Bedrock us-east-1 cross-region \u00b7 direct-API for SEC-bench (CVP-approved)",
+      "rank": 9,
+      "tags": [
+        "FRONTIER"
+      ]
+    },
+    {
+      "id": "gpt-5-5",
+      "name": "GPT-5.5",
+      "short": {
+        "top": "GPT",
+        "bot": "5.5"
+      },
+      "family": "openai",
+      "is_moe": false,
+      "spark_group": null,
+      "frontier": true,
+      "profile": "OpenAI API (direct)",
+      "rank": 10,
+      "tags": [
+        "FRONTIER"
+      ]
+    }
+  ],
+  "benches": [
+    {
+      "id": "humaneval-plus",
+      "title": "HumanEval+",
+      "n": 164,
+      "pool": "B",
+      "family": "code",
+      "metric": "pass@1",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "Expanded HumanEval with hardened tests. Authors (EvalPlus, NeurIPS 2023) pin greedy pass@1 but specify NO thinking mode (predates reasoning models) \u2014 so canonical_condition is omitted on our axes. thinking=off (\u1d57) is a factual label, not a deviation-from-canonical."
+    },
+    {
+      "id": "ifeval",
+      "title": "IFEval",
+      "n": 541,
+      "pool": "B",
+      "family": "code",
+      "metric": "prompt-strict",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "Prompt-level strict instruction-following (lm-eval-harness prompt_level_strict_acc). Authors pin greedy / strict-accuracy, NO thinking mode \u2192 canonical_condition omitted. Note: thinking-on can LOWER strict-accuracy here (visible think-blocks violate output-format instructions)."
+    },
+    {
+      "id": "bigcodebench-hard",
+      "title": "BCB-Hard",
+      "n": 148,
+      "pool": "B",
+      "family": "code",
+      "metric": "pass@1",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "BigCodeBench Hard subset (Instruct split, calibrated pass@1) via the bigcodebench docker evaluator. Authors pin greedy/pass@1, NO thinking mode \u2192 canonical_condition omitted."
+    },
+    {
+      "id": "cybergym",
+      "title": "CyberGym",
+      "n": 10,
+      "pool": "A",
+      "family": "vr",
+      "metric": "PoC-repro",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "100"
+      },
+      "description": "PoC reproduces the sanitizer crash on a 10-task representative subset (no LLM judge). OpenHands CodeActAgent, max_iter=100 (matches the documented CLI; 10-vs-100 upstream ambiguity). Wall-time 7200s vs authors' 1200s."
+    },
+    {
+      "id": "sec-bench",
+      "title": "SEC-bench",
+      "n": 11,
+      "pool": "A",
+      "family": "vr",
+      "metric": "diff-sanitizer",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "description": "Differential sanitizer on the patched build, 11-task pre-pulled subset (\u219250, bd <ISSUE>). canonical_condition OMITTED: authors do not pin a step budget, AND the project runs smolagents while the authors use SWE-agent/OpenHands/Aider \u2014 every current cell is harness-divergent and NOT comparable to upstream baselines. The harness axis here (stock vs <ISSUE>) is a within-smolagents patch variation, not the authors' scaffold."
+    },
+    {
+      "id": "cve-bench",
+      "title": "CVE-Bench",
+      "n": 40,
+      "pool": "A",
+      "family": "vr",
+      "metric": "exploit-success",
+      "value_kind": "ratio",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "30"
+      },
+      "description": "Live exploit vs containerized stack, 8-outcome /done oracle (Inspect AI + ReAct). Authors pin max_messages=30 and the project matches it \u2014 the one Pool A bench with NO budget deviation."
+    },
+    {
+      "id": "exploitbench-14",
+      "title": "ExploitBench-14",
+      "n": null,
+      "pool": "A",
+      "family": "vr",
+      "metric": "capability-tier",
+      "value_kind": "tier",
+      "higher_is_better": true,
+      "canonical_condition": {
+        "max_turns": "300",
+        "context": "128k"
+      },
+      "description": "16-flag capability bitmap, \u2265T1 reach (ExploitBench, arXiv:2605.14153). Authors' canonical = 300 turns / \u2265128K ctx. The project's 100-turn screening runs are a deviation AND structurally zero (agents never reach grade() under ~300 turns) \u2014 publish only 300-turn cells. Deferred (rental wall-time prohibitive); column stays TBD."
+    }
+  ],
+  "scores": [
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.878,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.861,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.304,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": 0.2,
+          "n": 10,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-27b-fp8",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.0,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.872,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.826,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.324,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": 0.4,
+          "n": 10,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.6-35b-a3b-fp8",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.0,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.915,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.896,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.291,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": 0.7,
+          "n": 10,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-31b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.091,
+          "n": 11,
+          "status": "measured"
+        },
+        {
+          "condition": {
+            "harness": "<ISSUE>"
+          },
+          "value": 0.091,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.915,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.889,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.264,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": null,
+          "n": 10,
+          "status": "na"
+        }
+      ]
+    },
+    {
+      "model_id": "gemma4-26b-a4b-nvfp4",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.0,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.902,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.784,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "nemotron3-super-120b-a12b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.318,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.872,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.861,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3.5-122b-a10b-nvfp4",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.297,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.811,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.83,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "off"
+          },
+          "value": 0.284,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.0,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "qwen3-235b-a22b-thinking-awq",
+      "bench_id": "exploitbench-14",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "300",
+            "context": "128k"
+          },
+          "value": 1,
+          "label": "T1",
+          "n": 14,
+          "status": "measured",
+          "notes": "1/14 \u00b7 disc."
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.939,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.832,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.48,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": 0.5,
+          "n": 10,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "opus-4-7",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.455,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "humaneval-plus",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.939,
+          "n": 164,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "ifeval",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.856,
+          "n": 541,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "bigcodebench-hard",
+      "measurements": [
+        {
+          "condition": {
+            "thinking": "on"
+          },
+          "value": 0.351,
+          "n": 148,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "cybergym",
+      "measurements": [
+        {
+          "condition": {
+            "max_turns": "100"
+          },
+          "value": 0.6,
+          "n": 10,
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "model_id": "gpt-5-5",
+      "bench_id": "sec-bench",
+      "measurements": [
+        {
+          "condition": {
+            "harness": "stock"
+          },
+          "value": 0.727,
+          "n": 11,
+          "status": "measured"
+        }
+      ]
+    }
+  ]
+}

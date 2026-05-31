@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ipnts/benchmarks/docs/board/schema.json",
+  "title": "DGX-Spark board.json",
+  "$comment": "VIEWS (consumer-side derivations over the same measurements[]; no extra data needed): (1) canonical — per-cell headline = the measurement matching benches[].canonical_condition, else the closest deviation, marked (see $defs/score). (2) deviation/uplift — show all measurements for a cell and their delta along one chosen condition axis; the reference value for an axis is condition_dims[axis].default, so delta = measurement.value - (measurement-at-default-on-that-axis).value. (3) max — max(value) over status=measured rows regardless of condition, labelled as a ceiling (NOT cross-comparable across models when their max was reached under different conditions).",
+  "description": "Data contract for the open-weight benchmark board. Produced by scripts/update-sweep-status.sh --emit-json from the result.json files. The published page (docs/board/index.html) fetches this and hydrates the table + charts. Condition-aware: each (model, bench) cell carries N measurements grouped by a condition (thinking, harness, quant, context, max_turns, wall_cap, ...), so thinking off/on, harness-mod uplift, budget sweeps, and quant comparisons are all one mechanism. CANONICAL = the benchmark authors' intended reference protocol, declared per bench (benches[].canonical_condition). A measurement equals canonical or is a DEVIATION from it (derived by comparing its condition to the bench's canonical_condition); the thinking-off bandage is a deviation, not canonical. The default table view is derived (show the canonical measurement if present, else the best-available deviation, marked) — it is never a stored display preference.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "condition_dims", "models", "benches", "scores"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Semver of this contract. Bump major on breaking shape changes.",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp the aggregator emitted this file. The page shows this as freshness."
+    },
+    "rev": {
+      "type": "string",
+      "description": "Human-facing revision tag (e.g. r18)."
+    },
+    "condition_dims": {
+      "type": "object",
+      "description": "Registry of the condition dimensions that can vary per measurement. Drives chart legends and the default-view selector. Open-ended: add a key to introduce a new dimension (e.g. quant).",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/conditionDim" }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/model" }
+    },
+    "benches": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/bench" }
+    },
+    "scores": {
+      "type": "array",
+      "description": "One entry per (model_id, bench_id) that has at least one measurement OR an explicit TBD/na status. Cells with no entry render blank.",
+      "items": { "$ref": "#/$defs/score" }
+    }
+  },
+
+  "$defs": {
+
+    "conditionDim": {
+      "type": "object",
+      "required": ["label", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "description": "Display name, e.g. Thinking." },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Allowed values for this dimension, in display order."
+        },
+        "default": {
+          "type": "string",
+          "description": "Reference value for this axis in the deviation/uplift VIEW (decoupled from canonical, which is bench-level). Uplift deltas are computed against the measurement at this value, e.g. thinking=off (so uplift shows the effect of enabling thinking), harness=stock, max_turns=300."
+        },
+        "value_labels": {
+          "type": "object",
+          "description": "Optional pretty labels per value, e.g. {\"<ISSUE>\": \"bd-227 patched\"}.",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "model": {
+      "type": "object",
+      "required": ["id", "name", "spark_group", "frontier", "rank"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Stable slug, e.g. qwen3.6-27b-fp8." },
+        "name": { "type": "string", "description": "Display name, e.g. Qwen3.6 27B Dense." },
+        "short": {
+          "type": "object",
+          "description": "Two-line chart label.",
+          "additionalProperties": false,
+          "properties": {
+            "top": { "type": "string" },
+            "bot": { "type": "string" }
+          }
+        },
+        "family": { "type": "string", "description": "qwen | gemma | nemotron | deepseek | anthropic | openai ..." },
+        "params_total_b": { "type": "number", "description": "Total params in billions." },
+        "params_active_b": { "type": "number", "description": "Active params in billions (= total for dense)." },
+        "is_moe": { "type": "boolean" },
+        "quant": { "type": "string", "description": "Default serving quant, e.g. fp8, nvfp4, awq-int4." },
+        "spark_group": {
+          "type": ["integer", "null"],
+          "description": "DGX-Spark count to serve this model: 1 (single Spark), 2 (dual-Spark cluster). null = frontier / not Spark-served. Drives the table dividers."
+        },
+        "frontier": { "type": "boolean", "description": "True for reference comparators (Opus, GPT). Rendered in magenta, grouped separately." },
+        "profile": { "type": "string", "description": "Short serving profile string for the row subtitle." },
+        "rank": { "type": "integer", "description": "Display order within the board." },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Display chips, e.g. DENSE, MOE, FRONTIER."
+        }
+      }
+    },
+
+    "bench": {
+      "type": "object",
+      "required": ["id", "title", "pool", "value_kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Stable slug, e.g. humaneval-plus." },
+        "title": { "type": "string", "description": "Display title, e.g. HumanEval+." },
+        "n": { "type": ["integer", "null"], "description": "Task count; null when TBD (e.g. CVE-Bench before driver lands)." },
+        "pool": { "type": "string", "enum": ["A", "B"], "description": "A = agentic security, B = single-pass quality." },
+        "family": { "type": "string", "enum": ["code", "vr"], "description": "code (Pool B) | vr (vulnerability research, Pool A)." },
+        "metric": { "type": "string", "description": "Human label for the metric, e.g. pass@1, prompt-strict." },
+        "canonical_condition": {
+          "$ref": "#/$defs/condition",
+          "description": "The benchmark authors' intended reference protocol for THIS bench (e.g. thinking unconstrained, max_turns=300). Pin only the dims the authors specify; unpinned dims are unconstrained. A measurement whose condition matches this on all pinned dims is canonical (a headline, cross-comparable number); any difference makes it a deviation on those axes, which the page marks (ᵗ for thinking, and analogous markers for max_turns/context/etc.). Omit if the bench specifies no particular protocol (then all measurements are treated as uncontested)."
+        },
+        "value_kind": {
+          "type": "string",
+          "enum": ["ratio", "tier", "count"],
+          "description": "ratio (0..1, render bar); tier (render label like T1); count (integer)."
+        },
+        "higher_is_better": { "type": "boolean", "default": true },
+        "description": { "type": "string", "description": "Tooltip body for the info dot." }
+      }
+    },
+
+    "score": {
+      "type": "object",
+      "description": "One (model, bench) cell. No stored display preference: the collapsed view is DERIVED — show the canonical measurement (the one matching benches[].canonical_condition on every pinned dim) if measured; otherwise show the measurement CLOSEST to canonical, where closeness is ranked by: (1) fewest deviating axes vs canonical_condition, then (2) highest n, then (3) latest completed_at. Only status=measured rows are eligible for the headline (smoke/tbd/na excluded). The shown cell is rendered with a marker per deviating axis (ᵗ for thinking, analogous for max_turns/context/etc.).",
+      "required": ["model_id", "bench_id", "measurements"],
+      "additionalProperties": false,
+      "properties": {
+        "model_id": { "type": "string" },
+        "bench_id": { "type": "string" },
+        "measurements": {
+          "type": "array",
+          "description": "All measured conditions for this cell. Empty array = cell exists but nothing measured yet (render TBD). Multiple entries = comparison available (drives stacked/grouped bars).",
+          "items": { "$ref": "#/$defs/measurement" }
+        }
+      }
+    },
+
+    "condition": {
+      "type": "object",
+      "description": "A point in condition-space: dim -> value. Keys must be declared in condition_dims. A measurement need only pin the dims that matter for it (others assumed at their dim default) — including pinning NOTHING when the bench's canonical_condition is omitted and the run is uncontested under all dim defaults. The canonical-view selector resolves any unpinned dim to condition_dims[dim].default at compare time, so empty objects are valid and semantically meaningful (= the measurement is the dim-defaults baseline).",
+      "additionalProperties": { "type": "string" }
+    },
+
+    "measurement": {
+      "type": "object",
+      "required": ["condition", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "condition": { "$ref": "#/$defs/condition" },
+        "value": {
+          "type": ["number", "null"],
+          "description": "Score. For value_kind=ratio, 0..1. null with status=tbd/na for non-numeric cells."
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional display override for non-ratio cells, e.g. T1 for an ExploitBench tier."
+        },
+        "n": { "type": ["integer", "null"], "description": "Sample/task count for this measurement." },
+        "status": {
+          "type": "string",
+          "enum": ["measured", "tbd", "na", "smoke"],
+          "default": "measured",
+          "description": "measured = real cell; smoke = smaller-N validation (marker), not canonical; tbd = scheduled; na = not applicable for this model/bench."
+        },
+        "campaign": { "type": "string", "description": "Source campaign id (provenance)." },
+        "completed_at": { "type": ["string", "null"], "format": "date-time" },
+        "audit": {
+          "type": "string",
+          "description": "Audit state, e.g. replay-verified, discrepancy, unverified."
+        },
+        "notes": { "type": ["string", "null"], "description": "Per-cell footnote." }
+      }
+    }
+  }
+}

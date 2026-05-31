@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pool B Criterion Matrix</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 1.5em auto; max-width: 1280px; padding: 0 1em;
+    color: #222; background: #fafafa;
+  }
+  h1 { border-bottom: 2px solid #444; padding-bottom: 0.3em; }
+  h2 { margin-top: 2.5em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
+  .meta { color: #666; font-size: 13px; }
+  .chart { height: 540px; margin: 1em 0; background: white; border: 1px solid #ddd; padding: 6px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid #ddd; padding: 5px 9px; }
+  th { background: #eee; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { background: #ddd; }
+  th[data-dir="asc"]::after  { content: " ▲"; color: #555; }
+  th[data-dir="desc"]::after { content: " ▼"; color: #555; }
+  td { text-align: right; white-space: nowrap; }
+  td.s { text-align: left; }
+  td.score { font-weight: 600; }
+  tr.thinking-true td.s { font-style: italic; }
+  tr.thinking-true td.s::after { content: " · thinking=true"; color: #c08000; font-weight: normal; font-size: 11px; }
+  .footnote { font-size: 11px; color: #888; margin-top: 0.5em; }
+  details { margin-top: 1em; }
+  summary { cursor: pointer; font-weight: 600; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #ddd; background: #1e1e1e; }
+    th { background: #333; }
+    th:hover { background: #444; }
+    table, th, td { border-color: #444; }
+    .chart { background: #2a2a2a; border-color: #444; }
+    .meta, .footnote { color: #999; }
+    h2 { border-color: #444; }
+  }
+</style>
+</head>
+<body>
+<h1>Off-Spark Pool B — Criterion Matrix</h1>
+<p class="meta">Generated 2026-05-16T06:08:14Z by <code>scripts/aggregators/extract-pool-b-criteria.py --html</code>. 114 rows from s3://<RESULTS_BUCKET>/. Heatmap shows the highest-n campaign per (model, criterion). Score color scale: red 0.0 → yellow 0.5 → green 1.0.</p>
+
+<h2>humaneval-plus</h2>
+<div class="chart" id="heat-humaneval-plus"></div>
+<details>
+  <summary>Full long-format table (23 rows)</summary>
+  <div id="table-humaneval-plus"></div>
+  <div class="footnote">Click a column header to sort. Italic rows ran with enable_thinking=true (<CAMPAIGN>). Score cells are color-graded 0→1 = red→green.</div>
+</details>
+
+<h2>ifeval</h2>
+<div class="chart" id="heat-ifeval"></div>
+<details>
+  <summary>Full long-format table (76 rows)</summary>
+  <div id="table-ifeval"></div>
+  <div class="footnote">Click a column header to sort. Italic rows ran with enable_thinking=true (<CAMPAIGN>). Score cells are color-graded 0→1 = red→green.</div>
+</details>
+
+<h2>bigcodebench-hard</h2>
+<div class="chart" id="heat-bigcodebench-hard"></div>
+<details>
+  <summary>Full long-format table (15 rows)</summary>
+  <div id="table-bigcodebench-hard"></div>
+  <div class="footnote">Click a column header to sort. Italic rows ran with enable_thinking=true (<CAMPAIGN>). Score cells are color-graded 0→1 = red→green.</div>
+</details>
+
+
+<script>
+const DATA = {"benches": [{"id": "humaneval-plus", "headers": [{"label": "campaign", "type": "str"}, {"label": "model", "type": "str"}, {"label": "criterion", "type": "str"}, {"label": "value", "type": "num"}, {"label": "stderr", "type": "num"}, {"label": "n", "type": "num"}], "rows": [{"thinking": null, "cells": ["0em-bump-opus47-humaneval-v2-2026-05-14", "us.anthropic.claude-opus-4-7", "pass@1/extract_code", 1.0, 0.0, 10]}, {"thinking": null, "cells": ["0em-restore-gpt55-humaneval-2026-05-14", "gpt-5.5", "pass@1/extract_code", 1.0, 0.0, 10]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-6-v1", "pass@1/extract_code", 0.9268, 0.0204, 164]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "pass@1/create_test", 0.0, 0.0, 164]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "pass@1/extract_code", 0.939, 0.0187, 164]}, {"thinking": null, "cells": ["gpt55-full-2026-05-12", "gpt-5.5", "pass@1/extract_code", 0.939, 0.0187, 164]}, {"thinking": null, "cells": ["gpt55-smoke-2026-05-12", "gpt-5.5", "pass@1/extract_code", 0.2, 0.2, 5]}, {"thinking": null, "cells": ["gpt55-smoke2-2026-05-12", "gpt-5.5", "pass@1/extract_code", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["gpt55-smoke2-2026-05-12", "gpt-5.5", "pass@1/extract_code", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "pass@1/extract_code", 0.9085, 0.0226, 164]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "pass@1/extract_code", 0.9024, 0.0232, 164]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "pass@1/extract_code", 0.872, 0.0262, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "pass@1/extract_code", 0.811, 0.0307, 164]}, {"thinking": true, "cells": ["<CAMPAIGN>-thinking-on-smoke-2026-05-15", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "pass@1/extract_code", 0.95, 0.05, 20]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "pass@1/extract_code", 0.6951, 0.0361, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "pass@1/extract_code", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "pass@1/extract_code", 0.878, 0.0256, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry-smoke", "Qwen/Qwen3.6-27B-FP8", "pass@1/extract_code", 1.0, 0.0, 10]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "pass@1/extract_code", 0.872, 0.0262, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "pass@1/extract_code", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "pass@1/extract_code", 0.9146, 0.0219, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "pass@1/extract_code", 0.9146, 0.0219, 164]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "pass@1/extract_code", 0.9146, 0.0219, 164]}], "defaultSortCol": 3, "heatmap": {"models": ["QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "Qwen/Qwen3.6-27B-FP8", "Qwen/Qwen3.6-35B-A3B-FP8", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "gpt-5.5", "nvidia/Gemma-4-26B-A4B-NVFP4", "nvidia/Gemma-4-31B-IT-NVFP4", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "us.anthropic.claude-opus-4-6-v1", "us.anthropic.claude-opus-4-7"], "criteria": ["pass@1/create_test", "pass@1/extract_code"], "z": [[null, 0.811], [null, 0.878], [null, 0.872], [null, 0.872], [null, 0.939], [null, 0.9146], [null, 0.9146], [null, 0.9024], [null, 0.9268], [0.0, 0.939]]}}, {"id": "ifeval", "headers": [{"label": "campaign", "type": "str"}, {"label": "model", "type": "str"}, {"label": "criterion", "type": "str"}, {"label": "value", "type": "num"}, {"label": "stderr", "type": "num"}, {"label": "n", "type": "num"}], "rows": [{"thinking": null, "cells": ["0em-bump-opus47-ifeval-2026-05-14", "us.anthropic.claude-opus-4-7", "inst_level_loose_acc", 0.9667, null, 20]}, {"thinking": null, "cells": ["0em-bump-opus47-ifeval-2026-05-14", "us.anthropic.claude-opus-4-7", "inst_level_strict_acc", 0.9, null, 20]}, {"thinking": null, "cells": ["0em-bump-opus47-ifeval-2026-05-14", "us.anthropic.claude-opus-4-7", "prompt_level_loose_acc", 0.95, 0.05, 20]}, {"thinking": null, "cells": ["0em-bump-opus47-ifeval-2026-05-14", "us.anthropic.claude-opus-4-7", "prompt_level_strict_acc", 0.85, 0.0819, 20]}, {"thinking": null, "cells": ["0em-restore-gpt55-ifeval-2026-05-14", "gpt-5.5", "inst_level_loose_acc", 0.9667, null, 20]}, {"thinking": null, "cells": ["0em-restore-gpt55-ifeval-2026-05-14", "gpt-5.5", "inst_level_strict_acc", 1.0, null, 20]}, {"thinking": null, "cells": ["0em-restore-gpt55-ifeval-2026-05-14", "gpt-5.5", "prompt_level_loose_acc", 0.95, 0.05, 20]}, {"thinking": null, "cells": ["0em-restore-gpt55-ifeval-2026-05-14", "gpt-5.5", "prompt_level_strict_acc", 1.0, 0.0, 20]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-6-v1", "inst_level_loose_acc", 0.9436, null, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-6-v1", "inst_level_strict_acc", 0.9185, null, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-6-v1", "prompt_level_loose_acc", 0.9168, 0.0119, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-6-v1", "prompt_level_strict_acc", 0.878, 0.0141, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "inst_level_loose_acc", 0.8993, null, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "inst_level_strict_acc", 0.8717, null, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "prompt_level_loose_acc", 0.8669, 0.0146, 541]}, {"thinking": null, "cells": ["frontier-poolb-2026-05", "us.anthropic.claude-opus-4-7", "prompt_level_strict_acc", 0.8318, 0.0161, 541]}, {"thinking": null, "cells": ["gpt55-full-2026-05-12", "gpt-5.5", "inst_level_loose_acc", 0.8765, null, 541]}, {"thinking": null, "cells": ["gpt55-full-2026-05-12", "gpt-5.5", "inst_level_strict_acc", 0.8693, null, 541]}, {"thinking": null, "cells": ["gpt55-full-2026-05-12", "gpt-5.5", "prompt_level_loose_acc", 0.8651, 0.0147, 541]}, {"thinking": null, "cells": ["gpt55-full-2026-05-12", "gpt-5.5", "prompt_level_strict_acc", 0.8558, 0.0151, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inst_level_loose_acc", 0.5048, null, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inst_level_strict_acc", 0.4341, null, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "prompt_level_loose_acc", 0.3826, 0.0209, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "prompt_level_strict_acc", 0.2976, 0.0197, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inst_level_loose_acc", 0.8945, null, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inst_level_strict_acc", 0.8489, null, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "prompt_level_loose_acc", 0.8466, 0.0155, 541]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "prompt_level_strict_acc", 0.7837, 0.0177, 541]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "inst_level_loose_acc", 0.9305, null, 541]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "inst_level_strict_acc", 0.9053, null, 541]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "prompt_level_loose_acc", 0.8965, 0.0131, 541]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "prompt_level_strict_acc", 0.8614, 0.0149, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "inst_level_loose_acc", 0.8981, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "inst_level_strict_acc", 0.8765, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "prompt_level_loose_acc", 0.8632, 0.0148, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "prompt_level_strict_acc", 0.8299, 0.0162, 541]}, {"thinking": true, "cells": ["<CAMPAIGN>-thinking-on-smoke-2026-05-15", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "inst_level_loose_acc", 0.8333, null, 20]}, {"thinking": true, "cells": ["<CAMPAIGN>-thinking-on-smoke-2026-05-15", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "inst_level_strict_acc", 0.8667, null, 20]}, {"thinking": true, "cells": ["<CAMPAIGN>-thinking-on-smoke-2026-05-15", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "prompt_level_loose_acc", 0.8, 0.0918, 20]}, {"thinking": true, "cells": ["<CAMPAIGN>-thinking-on-smoke-2026-05-15", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "prompt_level_strict_acc", 0.85, 0.0819, 20]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "inst_level_loose_acc", 0.4341, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "inst_level_strict_acc", 0.4281, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "prompt_level_loose_acc", 0.2957, 0.0196, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "prompt_level_strict_acc", 0.2921, 0.0196, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "inst_level_loose_acc", 1.0, null, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "inst_level_strict_acc", 1.0, null, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "prompt_level_loose_acc", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "prompt_level_strict_acc", 1.0, 0.0, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "inst_level_loose_acc", 0.9341, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "inst_level_strict_acc", 0.9065, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "prompt_level_loose_acc", 0.8983, 0.013, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "prompt_level_strict_acc", 0.8614, 0.0149, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry-smoke", "Qwen/Qwen3.6-27B-FP8", "inst_level_loose_acc", 1.0, null, 10]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry-smoke", "Qwen/Qwen3.6-27B-FP8", "inst_level_strict_acc", 0.9444, null, 10]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry-smoke", "Qwen/Qwen3.6-27B-FP8", "prompt_level_loose_acc", 1.0, 0.0, 10]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry-smoke", "Qwen/Qwen3.6-27B-FP8", "prompt_level_strict_acc", 0.9, 0.1, 10]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "inst_level_loose_acc", 0.9125, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "inst_level_strict_acc", 0.8813, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "prompt_level_loose_acc", 0.8706, 0.0144, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "prompt_level_strict_acc", 0.8262, 0.0163, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_loose_acc", 0.875, null, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_loose_acc", 0.9436, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_strict_acc", 0.875, null, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_strict_acc", 0.9293, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_loose_acc", 0.8, 0.2, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_loose_acc", 0.915, 0.012, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_strict_acc", 0.8, 0.2, 5]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_strict_acc", 0.8965, 0.0131, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_loose_acc", 0.946, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "inst_level_strict_acc", 0.9317, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_loose_acc", 0.9205, 0.0116, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "prompt_level_strict_acc", 0.9002, 0.0129, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "inst_level_loose_acc", 0.9376, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "inst_level_strict_acc", 0.9233, null, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "prompt_level_loose_acc", 0.9076, 0.0125, 541]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "prompt_level_strict_acc", 0.8891, 0.0135, 541]}], "defaultSortCol": 3, "heatmap": {"models": ["QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "Qwen/Qwen3.6-27B-FP8", "Qwen/Qwen3.6-35B-A3B-FP8", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "gpt-5.5", "nvidia/Gemma-4-26B-A4B-NVFP4", "nvidia/Gemma-4-31B-IT-NVFP4", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "us.anthropic.claude-opus-4-6-v1", "us.anthropic.claude-opus-4-7"], "criteria": ["inst_level_loose_acc", "inst_level_strict_acc", "prompt_level_loose_acc", "prompt_level_strict_acc"], "z": [[0.8981, 0.8765, 0.8632, 0.8299], [0.9341, 0.9065, 0.8983, 0.8614], [0.9125, 0.8813, 0.8706, 0.8262], [0.9305, 0.9053, 0.8965, 0.8614], [0.8765, 0.8693, 0.8651, 0.8558], [0.9376, 0.9233, 0.9076, 0.8891], [0.946, 0.9317, 0.9205, 0.9002], [0.8945, 0.8489, 0.8466, 0.7837], [0.9436, 0.9185, 0.9168, 0.878], [0.8993, 0.8717, 0.8669, 0.8318]]}}, {"id": "bigcodebench-hard", "headers": [{"label": "campaign", "type": "str"}, {"label": "model", "type": "str"}, {"label": "criterion", "type": "str"}, {"label": "value", "type": "num"}, {"label": "stderr", "type": "num"}, {"label": "n", "type": "num"}], "rows": [{"thinking": null, "cells": ["0em-restore-gpt55-bcb-hard-2026-05-14", "gpt-5.5", "pass@1_calibrated", 0.3514, null, ""]}, {"thinking": null, "cells": ["0em-restore-opus47-bcb-hard-2026-05-14", "us.anthropic.claude-opus-4-7", "pass@1_calibrated", 0.4797, null, ""]}, {"thinking": null, "cells": ["gpt55-bcb-2026-05-12", "gpt-5.5", "pass@1_calibrated", 0.3176, null, ""]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "pass@1_calibrated", 0.3311, null, ""]}, {"thinking": null, "cells": ["nemotron-3-super-nvfp4-2026-05-12-v2", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "pass@1_calibrated", 0.3176, null, ""]}, {"thinking": null, "cells": ["opus47-bcb-2026-05-12", "us.anthropic.claude-opus-4-7", "pass@1_calibrated", 0.5068, null, ""]}, {"thinking": null, "cells": ["qwen3-5-122b-a10b-nvfp4-2026-05-13", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "pass@1_calibrated", 0.2973, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-2026-05-15-rerun", "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "pass@1_calibrated", 0.2838, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-27b-fp8", "Qwen/Qwen3.6-27B-FP8", "pass@1_calibrated", 0.0338, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-62l-2026-05-11", "Qwen/Qwen3.6-27B-FP8", "pass@1_calibrated", 0.3041, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-retry", "Qwen/Qwen3.6-27B-FP8", "pass@1_calibrated", 0.1351, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-qwen36-35b-a3b-fp8-2026-05-12", "Qwen/Qwen3.6-35B-A3B-FP8", "pass@1_calibrated", 0.3243, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma31-2026-05-11", "nvidia/Gemma-4-31B-IT-NVFP4", "pass@1_calibrated", 0.2905, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-31b-it-nvfp4", "nvidia/Gemma-4-31B-IT-NVFP4", "pass@1_calibrated", 0.3041, null, ""]}, {"thinking": null, "cells": ["<CAMPAIGN>-gemma4-26b-a4b-nvfp4", "nvidia/Gemma-4-26B-A4B-NVFP4", "pass@1_calibrated", 0.2635, null, ""]}], "defaultSortCol": 3, "heatmap": {"models": ["QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ", "Qwen/Qwen3.6-27B-FP8", "Qwen/Qwen3.6-35B-A3B-FP8", "Sehyo/Qwen3.5-122B-A10B-NVFP4", "gpt-5.5", "nvidia/Gemma-4-26B-A4B-NVFP4", "nvidia/Gemma-4-31B-IT-NVFP4", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "us.anthropic.claude-opus-4-7"], "criteria": ["pass@1_calibrated"], "z": [[0.2838], [0.1351], [0.3243], [0.2973], [0.3176], [0.2635], [0.3041], [0.3176], [0.5068]]}}]};
+
+// ---------- table builder ----------
+function buildTable(host, headers, rows, sortKey) {
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const tr = document.createElement("tr");
+  headers.forEach((h, idx) => {
+    const th = document.createElement("th");
+    th.textContent = h.label;
+    th.dataset.col = idx;
+    th.dataset.type = h.type || "str";
+    th.addEventListener("click", () => sortBy(table, idx, th));
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    if (r.thinking === true) tr.className = "thinking-true";
+    headers.forEach((h, idx) => {
+      const td = document.createElement("td");
+      const v = r.cells[idx];
+      if (h.type === "num" && v != null && v !== "") {
+        td.className = "score";
+        td.textContent = (typeof v === "number") ? v.toFixed(4) : v;
+        // colorize by score (0 = red, 1 = green); only for num cells.
+        const score = (typeof v === "number") ? v : parseFloat(v);
+        if (!isNaN(score) && score >= 0 && score <= 1) {
+          const hue = Math.round(score * 120); // 0=red, 120=green
+          td.style.backgroundColor = `hsl(${hue}, 65%, 78%)`;
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            td.style.backgroundColor = `hsl(${hue}, 50%, 30%)`;
+          }
+        }
+      } else {
+        td.className = "s";
+        td.textContent = (v == null) ? "—" : v;
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  host.appendChild(wrap);
+  if (sortKey != null) {
+    const ths = table.querySelectorAll("th");
+    sortBy(table, sortKey, ths[sortKey]);
+  }
+}
+
+function sortBy(table, colIdx, thEl) {
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  const type = thEl.dataset.type;
+  const prevDir = thEl.dataset.dir;
+  const dir = (prevDir === "desc") ? "asc" : "desc";
+  table.querySelectorAll("th").forEach(t => t.dataset.dir = "");
+  thEl.dataset.dir = dir;
+  rows.sort((a, b) => {
+    let av = a.cells[colIdx].textContent;
+    let bv = b.cells[colIdx].textContent;
+    if (type === "num") {
+      const aN = parseFloat(av); const bN = parseFloat(bv);
+      av = isNaN(aN) ? -Infinity : aN;
+      bv = isNaN(bN) ? -Infinity : bN;
+    }
+    if (av < bv) return dir === "asc" ? -1 :  1;
+    if (av > bv) return dir === "asc" ?  1 : -1;
+    return 0;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ---------- heatmap (Plotly) ----------
+function buildHeatmap(divId, models, criteria, matrix) {
+  const trace = {
+    type: "heatmap",
+    x: criteria,
+    y: models,
+    z: matrix,
+    colorscale: [
+      [0,    "rgb(180, 30, 30)"],
+      [0.5,  "rgb(240, 220, 90)"],
+      [1,    "rgb(40, 160, 40)"],
+    ],
+    zmin: 0, zmax: 1,
+    hoverongaps: false,
+    text: matrix.map(row => row.map(v => (v == null) ? "" : v.toFixed(4))),
+    texttemplate: "%{text}",
+    textfont: { size: 11 },
+    colorbar: { thickness: 12, len: 0.6 }
+  };
+  const layout = {
+    margin: { l: 320, r: 30, t: 30, b: 80 },
+    xaxis: { tickangle: -25 },
+    yaxis: { automargin: true, autorange: "reversed" },
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)"
+  };
+  Plotly.newPlot(divId, [trace], layout, { displayModeBar: false, responsive: true });
+}
+
+// ---------- per-bench section ----------
+for (const bench of DATA.benches) {
+  const tableHost = document.getElementById(`table-${bench.id}`);
+  buildTable(tableHost, bench.headers, bench.rows, bench.defaultSortCol);
+  buildHeatmap(`heat-${bench.id}`, bench.heatmap.models, bench.heatmap.criteria, bench.heatmap.z);
+}
+</script>
+</body>
+</html>

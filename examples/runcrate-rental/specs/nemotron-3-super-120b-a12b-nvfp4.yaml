@@ -1,0 +1,107 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Nemotron-3-Super 120B-A12B NVFP4 on Runcrate RTXPro6000 ×2
+#
+# Provisioning (2026-05-12):
+#   Runcrate's `POST /v1/instances {instance_type_id: jolly-maxwell-rtxpro6000x2-065d}`
+#   path returns 500 "no longer available", but the auto-deploy path
+#   `POST /v1/instances {gpu_type: "RTXPro6000", gpu_count: 2}` IS deployable
+#   and lands the same KC ×2 hardware ($3.94/hr, 192 GB total VRAM, 382 GB RAM).
+#   See memory feedback_runcrate_inventory_scan.md: SKU ids churn fast, ALWAYS
+#   probe via the gpu_type+gpu_count auto-deploy path before treating a rental
+#   as unobtainable.
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed RTXPro6000 ×2 box (assigned by Runcrate
+#                 after status → running). Easiest pattern is to cp this spec
+#                 to /var/lib/harness/rentals/<CAMPAIGN>-spec-<date>.yaml and sed
+#                 the host in there, leaving this template clean.
+
+model_id: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# NVFP4 path requires --quantization nvfp4 explicitly. CUTLASS pre-built
+# kernels validated on SM120 for both dense (<CAMPAIGN>) and MoE (<CAMPAIGN>) — this
+# is the same code path scaled to TP=2 and 12B active params.
+quant: nvfp4
+
+# vLLM PR #29242 (CUTLASS grouped-GEMM for MoE NVFP4) is the relevant path.
+# RTXPro6000 is SM120; --enable-expert-parallel must stay OFF (vLLM #32826
+# reproduces on RTXPro6000 in EP mode).
+tensor_parallel_size: 2
+# 256K target — Nemotron-3 Super native max_position_embeddings is 262144
+# (bd <ISSUE> 2026-05-18 HF config.json check; model_type=nemotron_h). KV math
+# on RTXPro6000 ×2 (192 GB total): ~60 GB NVFP4 weights / 2 = 30 GB/GPU,
+# leaving ~66 GB/GPU free; 256K KV at TP=2 needs ~40 GB/GPU, fits with
+# ~26 GB margin. Per memory feedback_context_length_policy_2026-05-18:
+# target 256K, floor 128K.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# vLLM serving args.
+#
+# CRITICAL (bd <ISSUE> audit 2026-05-18, fix for bd <ISSUE> — unblocks bd <ISSUE> re-run):
+# Nemotron-3 Super's ChatML template defaults enable_thinking=TRUE, and
+# bigcodebench.generate uses its own openai client that bypasses litellm —
+# so the per-request --vllm-extra-body path can NEVER reach BCB-Hard. The
+# initial <CAMPAIGN> BCB-Hard cell (0.318) is contaminated: the model emitted
+# <think>...</think> preambles that burned the 4K output budget, leaving
+# response.content=None on the tail of long-reasoning tasks. Same mechanism
+# + fix as bd <ISSUE> for Qwen3.6-27B (which jumped 0.135 → 0.304 with the
+# server-side flag).
+#
+# --default-chat-template-kwargs '{"enable_thinking": false}' is server-side,
+# applies to every request path (lm-eval / litellm / bigcodebench), and is
+# the load-bearing fix. The model still reasons internally; it just doesn't
+# emit the sentinel structure.
+#
+# --reasoning-parser nemotron_v3 (bd <ISSUE> 2026-05-19, SUPERSEDES the prior
+# 'NOT adding --reasoning-parser' comment): per docs/research/nemotron-
+# thinking-template-2026-05-19.md, Nemotron's chat template emits empty
+# <think></think> wrappers even with enable_thinking=false. The nemotron_v3
+# parser ships in vLLM 0.21 and strips those into .reasoning_content so
+# .content is clean for downstream graders. The thinking-on companion spec
+# nemotron-3-super-120b-a12b-nvfp4-thinking-on.yaml uses the same parser.
+#
+# MoE-specific env vars (VLLM_USE_FLASHINFER_MOE_FP4=1,
+# VLLM_FLASHINFER_MOE_BACKEND=throughput) are env-only knobs, wired through
+# `vllm_env:` (commit dddb179) — add if perf/accuracy regress after the
+# next bench.
+#
+# VLLM_NVFP4_GEMM_BACKEND=marlin set unconditionally (bd <ISSUE> 2026-05-18):
+# vLLM 0.21 JIT-compiles the NVFP4 CUTLASS SM120 kernel via FlashInfer,
+# which our cuda-toolkit-13-0 install can't satisfy. Marlin sidesteps the
+# JIT entirely. Revert when a vLLM release ships SM120 prebuilt FP4 wheels.
+vllm_env:
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+vllm_args:
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  # Reasoning parser INTENTIONALLY OMITTED for thinking-off (bd <ISSUE> 2026-05-22):
+  # vLLM 0.21 nemotron_v3 parser is too aggressive when enable_thinking=false —
+  # it captures the ENTIRE model output into .reasoning (not .reasoning_content)
+  # and leaves .content=null. bigcodebench/lm-eval-harness/litellm-via-openai
+  # clients all read .content, so a Pool B run with this parser + thinking-off
+  # silently grades 0/N (all empty solutions). Bug live-verified 2026-05-22
+  # during bd <ISSUE> first attempt. Workaround: omit the parser for thinking-off;
+  # the chat template emits clean output to .content. Thinking-ON companion
+  # spec at nemotron-3-super-120b-a12b-nvfp4-thinking-on.yaml KEEPS the parser
+  # because with enable_thinking=true the model emits proper <think></think>
+  # wrappers and the parser correctly splits them.
+  # --tool-call-parser qwen3_coder (bd <ISSUE> 2026-05-22, locked via live-probe
+  # on the thinking-on companion spec — same tool-call format applies to
+  # this thinking-off variant). Nemotron-3 Super's chat_template emits tool
+  # calls in qwen3-coder format: <tool_call><function=NAME><parameter=KEY>
+  # VAL</parameter></function></tool_call>. The qwen3_coder parser's
+  # sentinel tokens match exactly. Live-probe returned structured tool_calls
+  # with finish_reason=tool_calls (thinking-on companion). Pool A on this
+  # thinking-off spec uses the same parser — no reasoning channel involved
+  # in the tool-call extraction path. --enable-auto-tool-choice paired so
+  # agent harness tool_choice=auto requests are accepted by vLLM 0.21+.
+  - --tool-call-parser
+  - qwen3_coder
+  - --enable-auto-tool-choice
+
+local_port: 8000

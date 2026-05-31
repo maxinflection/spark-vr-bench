@@ -1,0 +1,192 @@
+{
+  "$comment": "CURATED REGISTRY for the board — the static half of board.json. NOT board.json itself: it carries emit-only extensions the output schema forbids (model.match, bench.emit, harness_variants). scripts/update-sweep-status.sh --emit-json reads this, joins S3 measurements onto it, strips the emit-only fields, and writes a schema-conformant board.json. Keep models[] in sync with SWEEP_ROSTER/FRONTIER_ROSTER in the script (same models, board-display metadata added here). Edit canonical_condition only with a citation in docs/research/benchmark-canonical-protocols.md.",
+  "schema_version": "1.0",
+  "rev": "r18",
+  "$comment_harness_variants": "Data-driven harness-condition mapping (emit-only). To add a NEW harness on ANY bench and show its uplift: (1) add the new value to condition_dims.harness.values; (2) add a rule here mapping the run's extra.harness_variant string to that value; (3) set emit.harness_axis=true on the bench. No emitter code change — the <ISSUE> schema gate flags a value you forgot to declare. RULE CONTRACT: each rule needs both `match` and a string `value`. `match` is a jq test() regex matched UNANCHORED (substring) against the raw harness_variant.variant string, and rules are tried IN ORDER with first-match-wins — so put specific patterns before broad ones, and anchor (e.g. ^<ISSUE>$) when a new variant could be a substring of an existing rule. A run with no harness_variant maps to 'stock'; an unmatched non-empty variant passes through verbatim (so it surfaces and the gate tells you to declare it).",
+  "harness_variants": [
+    { "match": "<ISSUE>", "value": "<ISSUE>" }
+  ],
+  "condition_dims": {
+    "thinking": {
+      "label": "Thinking",
+      "values": ["off", "on"],
+      "default": "off",
+      "value_labels": { "off": "thinking-off (ᵗ)", "on": "thinking-on" }
+    },
+    "harness": {
+      "label": "Harness",
+      "values": ["stock", "<ISSUE>"],
+      "default": "stock",
+      "value_labels": { "stock": "stock", "<ISSUE>": "bd-227+bd-55z patched" }
+    },
+    "max_turns": {
+      "label": "Max turns",
+      "values": ["30", "100", "150", "300"],
+      "default": "300",
+      "value_labels": { "150": "150 (cost-reduced)", "300": "300 (canonical loop)" }
+    },
+    "context": {
+      "label": "Context",
+      "values": ["128k", "256k", "1m"],
+      "default": "256k"
+    }
+  },
+  "models": [
+    {
+      "id": "qwen3.6-27b-fp8",
+      "name": "Qwen3.6 27B Dense",
+      "short": { "top": "Qwen", "bot": "27B" },
+      "family": "qwen",
+      "params_total_b": 27, "params_active_b": 27, "is_moe": false,
+      "quant": "fp8", "spark_group": 1, "frontier": false,
+      "profile": "FP8 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 1, "tags": ["DENSE"],
+      "match": { "model_id": "Qwen/Qwen3.6-27B-FP8" }
+    },
+    {
+      "id": "qwen3.6-35b-a3b-fp8",
+      "name": "Qwen3.6 35B-A3B (MoE)",
+      "short": { "top": "Qwen", "bot": "35B" },
+      "family": "qwen",
+      "params_total_b": 35, "params_active_b": 3, "is_moe": true,
+      "quant": "fp8", "spark_group": 1, "frontier": false,
+      "profile": "FP8 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 2, "tags": ["MOE"],
+      "match": { "model_id": "Qwen/Qwen3.6-35B-A3B-FP8" }
+    },
+    {
+      "id": "gemma4-31b-nvfp4",
+      "name": "Gemma 4 31B Dense",
+      "short": { "top": "Gemma", "bot": "31B" },
+      "family": "gemma",
+      "params_total_b": 31, "params_active_b": 31, "is_moe": false,
+      "quant": "nvfp4", "spark_group": 1, "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=1 · 256K ctx · TRITON_ATTN (SM120)",
+      "rank": 3, "tags": ["DENSE"],
+      "match": { "model_id": "nvidia/Gemma-4-31B-IT-NVFP4" }
+    },
+    {
+      "id": "gemma4-26b-a4b-nvfp4",
+      "name": "Gemma 4 26B-A4B (MoE)",
+      "short": { "top": "Gemma", "bot": "26B" },
+      "family": "gemma",
+      "params_total_b": 26, "params_active_b": 4, "is_moe": true,
+      "quant": "nvfp4", "spark_group": 1, "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=1 · 256K ctx",
+      "rank": 4, "tags": ["MOE"],
+      "match": { "model_id": "nvidia/Gemma-4-26B-A4B-NVFP4" }
+    },
+    {
+      "id": "nemotron3-super-120b-a12b-nvfp4",
+      "name": "Nemotron 3 Super 120B-A12B (MoE)",
+      "short": { "top": "Nemo", "bot": "120B" },
+      "family": "nemotron",
+      "params_total_b": 120, "params_active_b": 12, "is_moe": true,
+      "quant": "nvfp4", "spark_group": 2, "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=2 · 256K ctx",
+      "rank": 5, "tags": ["MOE"],
+      "match": { "model_id": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4" }
+    },
+    {
+      "id": "qwen3.5-122b-a10b-nvfp4",
+      "name": "Qwen3.5 122B-A10B (MoE)",
+      "short": { "top": "Qwen", "bot": "122B" },
+      "family": "qwen",
+      "params_total_b": 122, "params_active_b": 10, "is_moe": true,
+      "quant": "nvfp4", "spark_group": 2, "frontier": false,
+      "profile": "NVFP4 · vLLM 0.21 · TP=2 · 256K ctx",
+      "rank": 6, "tags": ["MOE"],
+      "match": { "model_id": "Sehyo/Qwen3.5-122B-A10B-NVFP4" }
+    },
+    {
+      "id": "qwen3-235b-a22b-thinking-awq",
+      "name": "Qwen3 235B-A22B Thinking",
+      "short": { "top": "Qwen", "bot": "235B" },
+      "family": "qwen",
+      "params_total_b": 235, "params_active_b": 22, "is_moe": true,
+      "quant": "awq-int4", "spark_group": 2, "frontier": false,
+      "profile": "AWQ-INT4 · vLLM 0.21 · TP=8 · 256K ctx · native thinking",
+      "rank": 7, "tags": ["MOE", "THINKING"],
+      "match": { "model_id": "QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ" }
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "short": { "top": "DS", "bot": "V4" },
+      "family": "deepseek",
+      "params_total_b": 284, "params_active_b": 13, "is_moe": true,
+      "quant": "nvfp4", "spark_group": 2, "frontier": false,
+      "profile": "284B-A13B · planned NVFP4 · TP=2 · 256K ctx · scheduled <CAMPAIGN>",
+      "rank": 8, "tags": ["MOE"],
+      "match": { "model_id": "deepseek-ai/DeepSeek-V4-Flash" }
+    },
+    {
+      "id": "opus-4-7",
+      "name": "Opus 4.7",
+      "short": { "top": "Opus", "bot": "4.7" },
+      "family": "anthropic",
+      "is_moe": false, "spark_group": null, "frontier": true,
+      "profile": "Bedrock us-east-1 cross-region · direct-API for SEC-bench (CVP-approved)",
+      "rank": 9, "tags": ["FRONTIER"],
+      "match": { "model_id": "us.anthropic.claude-opus-4-7" }
+    },
+    {
+      "id": "gpt-5-5",
+      "name": "GPT-5.5",
+      "short": { "top": "GPT", "bot": "5.5" },
+      "family": "openai",
+      "is_moe": false, "spark_group": null, "frontier": true,
+      "profile": "OpenAI API (direct)",
+      "rank": 10, "tags": ["FRONTIER"],
+      "match": { "model_id": "gpt-5.5" }
+    }
+  ],
+  "benches": [
+    {
+      "id": "humaneval-plus", "title": "HumanEval+", "n": 164, "pool": "B", "family": "code",
+      "metric": "pass@1", "value_kind": "ratio", "higher_is_better": true,
+      "description": "Expanded HumanEval with hardened tests. Authors (EvalPlus, NeurIPS 2023) pin greedy pass@1 but specify NO thinking mode (predates reasoning models) — so canonical_condition is omitted on our axes. thinking=off (ᵗ) is a factual label, not a deviation-from-canonical.",
+      "emit": { "aliases": ["humaneval-plus"], "default_condition": {} }
+    },
+    {
+      "id": "ifeval", "title": "IFEval", "n": 541, "pool": "B", "family": "code",
+      "metric": "prompt-strict", "value_kind": "ratio", "higher_is_better": true,
+      "description": "Prompt-level strict instruction-following (lm-eval-harness prompt_level_strict_acc). Authors pin greedy / strict-accuracy, NO thinking mode → canonical_condition omitted. Note: thinking-on can LOWER strict-accuracy here (visible think-blocks violate output-format instructions).",
+      "emit": { "aliases": ["ifeval"], "default_condition": {} }
+    },
+    {
+      "id": "bigcodebench-hard", "title": "BCB-Hard", "n": 148, "pool": "B", "family": "code",
+      "metric": "pass@1", "value_kind": "ratio", "higher_is_better": true,
+      "description": "BigCodeBench Hard subset (Instruct split, calibrated pass@1) via the bigcodebench docker evaluator. Authors pin greedy/pass@1, NO thinking mode → canonical_condition omitted.",
+      "emit": { "aliases": ["bigcodebench-hard"], "default_condition": {} }
+    },
+    {
+      "id": "cybergym", "title": "CyberGym", "n": 10, "pool": "A", "family": "vr",
+      "metric": "PoC-repro", "value_kind": "ratio", "higher_is_better": true,
+      "canonical_condition": { "max_turns": "100" },
+      "description": "PoC reproduces the sanitizer crash on a 10-task representative subset (no LLM judge). OpenHands CodeActAgent, max_iter=100 (matches the documented CLI; 10-vs-100 upstream ambiguity). Wall-time 7200s vs authors' 1200s.",
+      "emit": { "aliases": ["cybergym-10", "cybergym-3"], "default_condition": { "max_turns": "100" } }
+    },
+    {
+      "id": "sec-bench", "title": "SEC-bench", "n": 11, "pool": "A", "family": "vr",
+      "metric": "diff-sanitizer", "value_kind": "ratio", "higher_is_better": true,
+      "canonical_condition": { "harness": "stock", "max_turns": "30" },
+      "description": "Differential sanitizer on the patched build, 11-task pre-pulled subset (→50, bd <ISSUE>). Project-canonical = stock smolagents harness at max_turns=30 (the unpatched scaffold an outside observer would reproduce). <ISSUE> measurements are the project's harness-patch uplift, marked as harness-axis deviations from canonical and surfaced in the max/ceiling view. ALL cells are still harness-divergent from upstream authors (who use SWE-agent/OpenHands/Aider), so absolute numbers are not directly cross-comparable to published author baselines.",
+      "emit": { "aliases": ["sec-bench-50", "sec-bench-11", "sec-bench-10"], "default_condition": { "max_turns": "30" }, "harness_axis": true }
+    },
+    {
+      "id": "cve-bench", "title": "CVE-Bench", "n": 40, "pool": "A", "family": "vr",
+      "metric": "exploit-success", "value_kind": "ratio", "higher_is_better": true,
+      "canonical_condition": { "max_turns": "30", "thinking": "off" },
+      "description": "Live exploit vs containerized stack, 8-outcome /done oracle (Inspect AI + ReAct). Authors pin max_messages=30 and the project matches it — the one Pool A bench with NO budget deviation. Project-canonical is thinking-off (the open-weight harness-bandage default); thinking-on runs show as a marked deviation in canonical view and as the ceiling in the max view. Frontier models (natively thinking-on) will be marked as deviating on the thinking axis — accurate to the condition, not a quality judgement.",
+      "emit": { "aliases": ["cve-bench-40", "cve-bench-10"], "default_condition": { "max_turns": "30" }, "derive": { "max_turns": ["extra", "max_messages"] } }
+    },
+    {
+      "id": "exploitbench-14", "title": "ExploitBench-14", "n": null, "pool": "A", "family": "vr",
+      "metric": "capability-tier", "value_kind": "tier", "higher_is_better": true,
+      "canonical_condition": { "max_turns": "300", "context": "128k" },
+      "description": "16-flag capability bitmap, ≥T1 reach (ExploitBench, arXiv:2605.14153). Authors' canonical = 300 turns / ≥128K ctx. The project's 100-turn screening runs are a deviation AND structurally zero (agents never reach grade() under ~300 turns) — publish only 300-turn cells. Deferred (rental wall-time prohibitive); column stays TBD.",
+      "emit": { "aliases": ["exploitbench-14"], "default_condition": { "max_turns": "300", "context": "128k" } }
+    }
+  ]
+}

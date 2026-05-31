@@ -1,0 +1,40 @@
+# gitleaks (bd <ISSUE>) — defense-in-depth secret-scan on the public repo.
+#
+# The mirror's .6 gate is the authoritative scan (run against the produced
+# public tree before every push). This workflow is the second line of defense
+# on the public repo itself: if anyone ever pushes directly to the public
+# repo (manual commit, dependabot, contributor PR), gitleaks catches secrets
+# in the actual public commit before it lands on main.
+#
+# Uses the repo-root .gitleaks.toml (the same config the mirror gate uses), so
+# the allowlist (placeholder tokens, public Ubuntu-AMI owner id, etc.) stays
+# consistent across both scans.
+
+name: gitleaks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so pull-request scans cover every introduced commit,
+          # not just the merge tip.
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for GitHub Organization accounts.
+          # This repo is owned by a personal account, so no license env is set.
+          GITLEAKS_CONFIG: .gitleaks.toml

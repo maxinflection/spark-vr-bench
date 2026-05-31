@@ -1,0 +1,61 @@
+# rental-spec for benchmarks-<CAMPAIGN> Pool A under bd <CAMPAIGN> paired-mode:
+# QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ at 256K context with thinking-OFF.
+#
+# Paired partner to qwen3-235b-thinking-awq-256k-thinking-on.yaml — same
+# infra (**H100 ×4** / TP=4 / 256K, fallback RTXPro6000 ×4), only
+# enable_thinking differs.
+# Clean paired-mode comparison: publish the higher score as canonical
+# under the <CAMPAIGN> epic.
+#
+# Why a separate 256K thinking-off spec (vs reusing the existing TP=2 /
+# 128K qwen3-235b-thinking-awq.yaml): clean comparison requires same
+# infra on both modes — otherwise we're confounding the thinking-mode
+# axis with the GPU SKU + context axis. The TP=2 / 128K spec stays as-is
+# for Pool B continuity (no need to bump cost on every Pool B run); this
+# file is the paired-mode <CAMPAIGN>-specific partner of the thinking-on
+# variant at the same 256K infra.
+#
+# All other config notes carry from the thinking-on variant — see that
+# file's header for the SKU math, parser rationale, and bd <ISSUE>
+# prerequisite for cybergym.
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed RTXPro6000 ×4 box.
+
+model_id: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+quant: awq
+tensor_parallel_size: 4
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# enable_thinking=FALSE — the <CAMPAIGN> paired-mode "off" cell. Compare
+# against qwen3-235b-thinking-awq-256k-thinking-on.yaml under the same
+# infra. Per the policy lock and the Qwen3 technical report (arxiv
+# 2505.09388), Qwen3-235B-Thinking shows a documented BCB-Hard
+# regression in thinking-mode after Stage-3/4 training. The regression
+# is Pool B BCB-Hard specific; Pool A axes (cybergym, sec-bench,
+# exploitbench) are NOT expected to share that pattern — Pool A
+# rewards multi-step deliberation between tool calls, where reasoning
+# clearly helps. Measure both regardless.
+#
+# Parser flags identical to the thinking-on twin — see the 256k-thinking-on
+# spec for the qwen3_xml → hermes correction rationale (bd <ISSUE> EB shakedown,
+# 2026-05-20). Same model + same chat template → same parser regardless of
+# enable_thinking setting.
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  - --reasoning-parser
+  - qwen3
+  - --tool-call-parser
+  - hermes
+  - --enable-auto-tool-choice
+
+local_port: 8004  # <CAMPAIGN> paired-mode off lane; on variant uses 8003
