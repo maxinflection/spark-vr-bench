@@ -1,0 +1,36 @@
+# Qwen3-235B-A22B-Thinking-2507 (AWQ-INT4) — B300 x1, TP=1, THINKING-ON.
+# Created 2026-06-01 for the bd to4.8 re-attempt after the RTXPro6000 x2 deferral.
+#
+# WHY B300 x1 / TP=1 (see memory qwen3-235b-cvebench-rental-sizing-2026-06-01):
+#   The x2 (TP=2) run was ~12-14min/CVE (~8hr/cell) — memory-bandwidth-bound
+#   decode on workstation cards + TP all-reduce over PCIe. A single B300
+#   (288GB HBM3e, ~8TB/s) fits the ~118GB AWQ weights + 128K KV at TP=1, which
+#   (a) eliminates the all-reduce tax entirely and (b) ~4-5x's decode bandwidth.
+#   DeepSeek-V4-Flash precedent: B300 x1 ran clean at ~3min/CVE.
+#
+# THINKING-ON ONLY: Qwen3-235B-A22B-Thinking is a thinking-NATIVE model. Per the
+#   thinking-mode-policy-2026-05-19 point-5 exception, we do NOT run a thinking-off
+#   cell (it measures a degraded artifact — OFF went 0/9 on CVE-Bench). Run ON only.
+#
+# DO NOT add --enforce-eager: the NVFP4+TP=2 sample_tokens engine hang
+#   (nvfp4-tp2-blackwell-vllm-sample-tokens-hang-2026-05-31) is NVFP4+multi-GPU
+#   specific; AWQ at TP=1 is unaffected and we WANT CUDA graphs for speed.
+model_id: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+quant: awq
+tensor_parallel_size: 1
+max_model_len: 131072
+vllm_min_version: "0.21.0"
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": true}'
+  - --reasoning-parser
+  - qwen3
+  - --tool-call-parser
+  - hermes
+  - --enable-auto-tool-choice
+local_port: 8003

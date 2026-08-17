@@ -1,0 +1,82 @@
+# rental-spec for benchmarks-<CAMPAIGN> (thinking-on companion under bd <CAMPAIGN>):
+# nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4 with enable_thinking=true.
+#
+# Companion to nemotron-3-super-120b-a12b-nvfp4.yaml (the thinking-off
+# baseline). Used by the <CAMPAIGN> thinking-mode realism epic to measure the
+# paired delta on Pool A benches per thinking-mode-policy-2026-05-19.
+#
+# Tool-call parser is intentionally LEFT UNSET — the qwen3_coder pairing
+# from NVIDIA recipes is unverified for this model at vkt land time. First
+# action at the <CAMPAIGN> thinking-on rental bring-up: live-probe whether
+# tool_choice=auto round-trips a synthetic call, and append the parser
+# entry below once confirmed. See docs/research/nemotron-thinking-template-
+# 2026-05-19.md + bd <ISSUE> for the open question.
+#
+# Hardware: Runcrate RTXPro6000 ×2 (auto-deploy by {gpu_type, gpu_count}).
+# Same SKU shape as the thinking-off twin — see memory feedback_runcrate_
+# inventory_scan.md for the rotation discipline.
+#
+# Math: Nemotron-3 Super NVFP4 weights ≈ 60 GB → 30 GB/GPU at TP=2.
+# 96 GB Blackwell leaves ~66 GB/GPU free; 256K KV at TP=2 needs ~40 GB/GPU,
+# fits with ~26 GB margin (same as the thinking-off twin).
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed RTXPro6000 ×2 box.
+
+model_id: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# NVFP4 path requires --quantization nvfp4 explicitly. CUTLASS pre-built
+# kernels validated on SM120 — same code path as the thinking-off twin.
+quant: nvfp4
+
+# vLLM PR #29242 (CUTLASS grouped-GEMM for MoE NVFP4). RTXPro6000 is SM120;
+# --enable-expert-parallel must stay OFF (vLLM #32826).
+tensor_parallel_size: 2
+# 256K target per feedback_context_length_policy_2026-05-18. KV fits at TP=2
+# (see math in header).
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# VLLM_NVFP4_GEMM_BACKEND=marlin (bd <ISSUE> 2026-05-18): vLLM 0.21 JIT-compiles
+# the NVFP4 CUTLASS SM120 kernel via FlashInfer, which our cuda-toolkit-13-0
+# install can't satisfy. Marlin sidesteps the JIT entirely. Revert when a
+# vLLM release ships SM120 prebuilt FP4 wheels.
+vllm_env:
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+# enable_thinking=TRUE — the entire point of this variant. Measures the
+# thinking-on cell under bd <CAMPAIGN>. Per docs/research/nemotron-thinking-
+# template-2026-05-19.md, Nemotron's chat template enables thinking by
+# default; we set it explicitly here for clarity and to document intent.
+#
+# --reasoning-parser nemotron_v3: required to split <think>...</think>
+# blocks into .reasoning_content vs .content for any Pool B grader and
+# for the Pool A agent harnesses that consume .content as the action body.
+# See nemotron-thinking-template-2026-05-19.md for the parser archaeology.
+#
+# --tool-call-parser qwen3_coder (bd <ISSUE> 2026-05-22, locked via live-probe):
+# Nemotron-3 Super's chat_template.jinja emits tool calls in the format
+#   <tool_call><function=NAME><parameter=KEY>VAL</parameter></function></tool_call>
+# which is byte-identical to the Qwen3-Coder format. Verified by reading
+# qwen3coder_tool_parser.py — its sentinel tokens (<tool_call>, <function=,
+# <parameter=, </tool_call>) match the template exactly. Live-probe on
+# RTXPro6000 x2 rental returned structured tool_calls with finish_reason=
+# tool_calls (response.choices[0].message.tool_calls = [{name=calc,
+# arguments='{"a": 2, "b": 2}'}]). --enable-auto-tool-choice paired so
+# agent harnesses (cybergym/exploitbench) tool_choice=auto requests are
+# accepted by vLLM 0.21+. See docs/research/nemotron-thinking-template-
+# 2026-05-19.md for the chat_template archaeology.
+vllm_args:
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": true}'
+  - --reasoning-parser
+  - nemotron_v3
+  - --tool-call-parser
+  - qwen3_coder
+  - --enable-auto-tool-choice
+
+local_port: 8001  # thinking-on lane; thinking-off twin uses 8000

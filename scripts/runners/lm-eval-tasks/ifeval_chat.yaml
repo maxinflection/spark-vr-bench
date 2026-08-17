@@ -1,0 +1,59 @@
+# ifeval_chat — None-tolerant ifeval task for reasoning-model Pool B (<CAMPAIGN>).
+#
+# Why this exists: upstream lm_eval/tasks/ifeval/utils.py crashes with
+#   AttributeError: 'NoneType' object has no attribute 'strip'
+# when the API returns response.content=None. vLLM emits None on
+# reasoning-model truncation (enable_thinking=true + max_gen_toks hit inside
+# the <think> block) — this is the codified behavior after vLLM PR #35230
+# (merged 2026-02-26), not a bug we can route around.
+#
+# Upstream-fix status: EleutherAI/lm-evaluation-harness Issue #3382 is open;
+# PR #3709 proposes the score-as-empty-string convention but is not yet
+# merged (reviewer requested changes). Until that lands, we run a renamed
+# task here under our --include_path so we don't have to patch the harness
+# venv in place.
+#
+# Differences from upstream lm_eval/tasks/ifeval/ifeval.yaml:
+#   - task name flipped to `ifeval_chat` (was `ifeval`) so it doesn't collide
+#     with upstream on the include-path resolver.
+#   - process_results / agg_inst_level_acc point at ifeval_utils.py in this
+#     directory (vendored copy with the None guard at function entry).
+#   - max_gen_toks bumped from 1280 to 4096 — reasoning-mode responses on
+#     ifeval are often 1500-3000 tokens once the model deliberates internally;
+#     the upstream default truncates before the answer reliably emerges.
+
+task: ifeval_chat
+dataset_path: google/IFEval
+dataset_name: null
+output_type: generate_until
+test_split: train
+num_fewshot: 0
+doc_to_text: prompt
+doc_to_target: 0
+generation_kwargs:
+  until: []
+  do_sample: false
+  temperature: 0.0
+  # 16384 (was 1280 → 4096 → 16384). Lifted from 4096 (bd <ISSUE> 2026-05-24):
+  # Qwen3-235B-A22B-Thinking-2507 averages ~1,300 tokens per IFEval sample
+  # at the OLD cap but 13% of samples were still truncating to null_content
+  # on HE+ at the matching 8192 cap; IFEval samples can deliberate longer
+  # since instruction-following demands multi-step planning. 16384 matches
+  # HE+/BCB-H ceilings — uniform Pool B budget for thinking models.
+  max_gen_toks: 16384
+process_results: !function ifeval_utils.process_results
+metric_list:
+  - metric: prompt_level_strict_acc
+    aggregation: mean
+    higher_is_better: true
+  - metric: inst_level_strict_acc
+    aggregation: !function ifeval_utils.agg_inst_level_acc
+    higher_is_better: true
+  - metric: prompt_level_loose_acc
+    aggregation: mean
+    higher_is_better: true
+  - metric: inst_level_loose_acc
+    aggregation: !function ifeval_utils.agg_inst_level_acc
+    higher_is_better: true
+metadata:
+  version: 4.0

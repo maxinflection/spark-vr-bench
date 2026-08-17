@@ -1,0 +1,18 @@
+# GitHub Pages config for the public spark-vr-bench site.
+#
+# Disable Liquid template processing on all markdown content. Some research
+# docs include LLM chat-template code fences containing Jinja-style tokens
+# (e.g. `{%- set %}`) that Jekyll's Liquid parser misinterprets as templates,
+# breaking the Pages build. Markdown -> HTML rendering still works; we just
+# skip the Liquid pre-pass we don't use anyway.
+defaults:
+  - scope:
+      path: ""
+    values:
+      render_with_liquid: false
+
+# Belt-and-suspenders: jekyll-optional-front-matter can still trigger Liquid
+# parsing before `render_with_liquid: false` applies, so explicitly exclude
+# the file with Jinja LLM-template code fences that triggered the breakage.
+exclude:
+  - research/nemotron-thinking-template-2026-05-19.md

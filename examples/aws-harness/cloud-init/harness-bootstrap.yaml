@@ -1,0 +1,670 @@
+#cloud-config
+# harness-bootstrap.yaml — Cloud-init user-data for the benchmarks eval-harness EC2 host
+#
+# Target: Ubuntu 24.04 LTS (Noble), official Canonical AMI (owner 099720109477)
+# Default SSH user: ubuntu  (Ubuntu Noble default — NOT ec2-user)
+# SSM agent: ships via snap on Noble; this config verifies + enables it.
+#
+# Substitution tokens (replaced by harness-up.sh before base64-encoding):
+#   ${SSH_KEY_FILE_CONTENTS}       — operator's SSH public key (one line, ssh-ed25519 or similar)
+#
+# install-harness.sh is NOT embedded here anymore: after 2on.1-.3 the script
+# grew past the 16,384-byte gzipped user-data cap when wrapped via gz+b64.
+# harness-up.sh now pushes install-harness.sh to /opt/benchmarks/scripts/ via
+# SSM send-command after bootstrap.ok lands. Cloud-init only needs to create
+# the parent directory (handled by harness-bootstrap.sh's mkdir).
+#
+# Sentinel files:
+#   /var/lib/harness/bootstrap.ok  — written only after Bedrock self-test passes
+#   /var/lib/harness/bootstrap.err — written on any failure; harness-up.sh polls for this
+#
+# Design reference: docs/research/ec2-harness-design.md §3.3
+# Issue: benchmarks-<CAMPAIGN>
+
+# ============================================================
+# Write_files: create directories and the main bootstrap script.
+# We use a runcmd-triggered shell script rather than inline runcmd lines so
+# we can implement structured error-handling, traps, and per-step sentinel logic.
+# ============================================================
+write_files:
+  - path: /root/harness-bootstrap.sh
+    permissions: '0700'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      # Main bootstrap script — executed by cloud-init runcmd.
+      # All output is tee'd to /var/log/harness-bootstrap.log.
+      set -Eeuo pipefail
+      IFS=$'\n\t'
+
+      readonly LOG_FILE="/var/log/harness-bootstrap.log"
+      readonly STATE_DIR="/var/lib/harness"
+      readonly HARNESS_DIRS="/opt/harnesses"
+      readonly BOOTSTRAP_OK="${STATE_DIR}/bootstrap.ok"
+      readonly BOOTSTRAP_ERR="${STATE_DIR}/bootstrap.err"
+      readonly BEDROCK_TEST_OUT="/tmp/bedrock-selftest.out"
+      readonly REGION="us-east-1"
+
+      mkdir -p "${STATE_DIR}" "${HARNESS_DIRS}"
+
+      # --------------------------------------------------------
+      # Logging
+      # --------------------------------------------------------
+      log() {
+        local level="$1"; shift
+        printf '[harness][%s][%s] step=%s message=%s\n' \
+          "${level}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${CURRENT_STEP:-init}" "$*" \
+          | tee -a "${LOG_FILE}" >&2
+      }
+      log_info()  { log "info"  "$@"; }
+      log_warn()  { log "warn"  "$@"; }
+      log_error() { log "error" "$@"; }
+
+      CURRENT_STEP="init"
+
+      # --------------------------------------------------------
+      # Trap: on any error or signal, write bootstrap.err
+      # --------------------------------------------------------
+      trap_failure() {
+        local exit_code=$?
+        local line="${BASH_LINENO[0]:-unknown}"
+        log_error "Bootstrap failed at line ${line} (exit=${exit_code})"
+        {
+          printf 'failed_step=%s\n' "${CURRENT_STEP}"
+          printf 'exit_code=%s\n' "${exit_code}"
+          printf 'line=%s\n' "${line}"
+          printf 'timestamp=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          printf 'log=%s\n' "${LOG_FILE}"
+        } >> "${BOOTSTRAP_ERR}"
+        # Do NOT touch bootstrap.ok on failure
+        exit "${exit_code}"
+      }
+      trap trap_failure ERR SIGTERM SIGPIPE
+
+      log_info "Bootstrap script starting"
+
+      # --------------------------------------------------------
+      # Step 0: Optional /data EBS volume — Pool A harness expansion
+      #
+      # If harness-up.sh attached a second EBS volume (--data-volume-size),
+      # it appears as /dev/nvme1n1 on Nitro. Format it ext4, mount at /data,
+      # write fstab, and configure Docker's data-root to live there BEFORE
+      # docker.io is installed (apt's docker postinst starts the daemon, and
+      # daemon.json must already exist + /data/docker must already be mkdir'd
+      # for first start to succeed). When no second device is present (the
+      # default m6i.xlarge / Pool B use case) this step is a no-op and Docker
+      # uses its default /var/lib/docker on the root EBS.
+      #
+      # Issue: benchmarks-2on / 2on.1
+      # --------------------------------------------------------
+      CURRENT_STEP="data-volume-mount"
+      DATA_DEVICE=""
+      # /dev/nvme0n1 is always root on Nitro; look for the second NVMe.
+      if [[ -b /dev/nvme1n1 ]]; then
+        DATA_DEVICE="/dev/nvme1n1"
+      fi
+      if [[ -n "${DATA_DEVICE}" ]]; then
+        log_info "Found data device ${DATA_DEVICE} — preparing /data"
+        # Format only if not already formatted (idempotent across reboots /
+        # --persistent stop-start cycles).
+        if ! blkid "${DATA_DEVICE}" >/dev/null 2>&1; then
+          log_info "Formatting ${DATA_DEVICE} as ext4"
+          mkfs.ext4 -q -L data "${DATA_DEVICE}"
+        else
+          log_info "${DATA_DEVICE} already has a filesystem — skipping mkfs"
+        fi
+        mkdir -p /data
+        if ! mountpoint -q /data; then
+          mount "${DATA_DEVICE}" /data
+        fi
+        # fstab entry for reboot persistence (use UUID — device names can drift).
+        DATA_UUID="$(blkid -s UUID -o value "${DATA_DEVICE}")"
+        if ! grep -q "UUID=${DATA_UUID}" /etc/fstab; then
+          printf 'UUID=%s /data ext4 defaults,nofail 0 2\n' "${DATA_UUID}" >> /etc/fstab
+        fi
+        log_info "/data mounted ($(df -h /data | tail -1))"
+
+        mkdir -p /data/docker /etc/docker
+        # Atomic write to avoid a partial daemon.json blocking docker start.
+        # printf instead of heredoc — heredoc terminator at column 0 breaks
+        # the enclosing YAML block scalar.
+        printf '{\n  "data-root": "/data/docker"\n}\n' > /etc/docker/daemon.json.tmp
+        mv /etc/docker/daemon.json.tmp /etc/docker/daemon.json
+        log_info "Docker data-root configured to /data/docker"
+
+        # ----------------------------------------------------
+        # Containerd data-root — critical on Ubuntu 24.04+
+        #
+        # Modern Docker on Noble uses the containerd snapshotter
+        # (io.containerd.snapshotter.v1) by default, which means actual
+        # image layers live in /var/lib/containerd, NOT /var/lib/docker.
+        # Configuring only docker's daemon.json (above) leaves layers on
+        # root EBS. Symptom: docker info reports DockerRootDir=/data/docker
+        # but /var/lib/containerd grows to fill / during heavy pulls
+        # (e.g. SEC-bench's 50-image set in 2on.3). This is the same
+        # gotcha that bit the IPNTS "mordecai" project — fix is to also
+        # redirect containerd's `root`. `state` stays on root EBS because
+        # it's runtime/ephemeral (sockets, locks). The minimal toml below
+        # merges with containerd's compiled-in defaults.
+        # ----------------------------------------------------
+        mkdir -p /data/containerd /etc/containerd
+        {
+          printf 'version = 2\n'
+          printf 'root = "/data/containerd"\n'
+        } > /etc/containerd/config.toml.tmp
+        mv /etc/containerd/config.toml.tmp /etc/containerd/config.toml
+        log_info "Containerd root configured to /data/containerd"
+      else
+        log_info "No /data device present — Docker will use default /var/lib/docker"
+      fi
+
+      # --------------------------------------------------------
+      # Step 1: Wait for apt lock + update + install packages
+      # --------------------------------------------------------
+      CURRENT_STEP="apt-install"
+      log_info "Waiting for apt locks to clear"
+      # Ubuntu cloud-init may hold the apt lock during its own early steps
+      for i in $(seq 1 30); do
+        if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+          break
+        fi
+        log_warn "apt lock held; waiting 5s (attempt ${i}/30)"
+        sleep 5
+      done
+
+      log_info "Running apt-get update"
+      apt-get update -qq 2>&1 | tee -a "${LOG_FILE}"
+
+      log_info "Installing required packages (apt)"
+      # Note: awscli was removed from Ubuntu Noble apt repos because the
+      # apt-packaged version was always stale. Installed via snap below.
+      # software-properties-common provides add-apt-repository, needed
+      # for the deadsnakes PPA step that follows (<CAMPAIGN>).
+      DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        jq \
+        curl \
+        git \
+        python3-venv \
+        python3-pip \
+        python3-yaml \
+        software-properties-common \
+        sqlite3 \
+        docker.io \
+        docker-compose-v2 \
+        unzip \
+        2>&1 | tee -a "${LOG_FILE}"
+      # docker-compose-v2 provides `docker compose` subcommand at
+      # /usr/libexec/docker/cli-plugins/docker-compose. Ubuntu's docker.io
+      # apt package does NOT bundle compose; without this line, install-harness.sh's
+      # CVE-Bench prepull step fails with `docker: unknown command: docker compose`
+      # for all 40 CVE compose stacks. Documented 2026-05-12 on harness
+      # <HARNESS_INSTANCE_ID> — see bd <ISSUE> retries.
+
+      # <CAMPAIGN>: cve-bench requires <3.12,>=3.11 (per its pyproject.toml).
+      # Noble ships 3.12 by default; install 3.11 from deadsnakes so
+      # install-harness.sh can build cve-bench's venv against it. The
+      # other three harnesses (lm-evaluation-harness, cybergym, sec-bench)
+      # remain on Noble's default python3 (3.12). bigcodebench's heavy
+      # eval deps live in their official Docker image rather than another
+      # host venv (see install-harness.sh bigcodebench step + bd memory
+      # feedback-max-2026-05-09-pinning-outdated-versions).
+      log_info "Adding deadsnakes PPA and installing python3.11 (cve-bench requires 3.11)"
+      add-apt-repository -y ppa:deadsnakes/ppa 2>&1 | tee -a "${LOG_FILE}"
+      apt-get update -qq 2>&1 | tee -a "${LOG_FILE}"
+      DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        python3.11 \
+        python3.11-venv \
+        2>&1 | tee -a "${LOG_FILE}"
+      log_info "python3.11 installed: $(python3.11 --version 2>&1)"
+
+      log_info "Installing awscli via snap (apt package no longer available on Noble)"
+      snap install aws-cli --classic 2>&1 | tee -a "${LOG_FILE}"
+      # snap installs to /snap/bin which may not yet be on root's PATH;
+      # symlink to /usr/local/bin so subsequent steps find it deterministically.
+      if [[ ! -e /usr/local/bin/aws ]]; then
+        ln -s /snap/bin/aws /usr/local/bin/aws
+      fi
+      log_info "Package install complete (aws version: $(/usr/local/bin/aws --version 2>&1 | head -1))"
+
+      # --------------------------------------------------------
+      # Step 2: Add ubuntu to docker group + start docker
+      # --------------------------------------------------------
+      CURRENT_STEP="docker-setup"
+      log_info "Adding ubuntu to docker group"
+      usermod -aG docker ubuntu || log_warn "usermod failed (non-fatal if already member)"
+
+      log_info "Enabling and starting docker"
+      systemctl enable docker
+      systemctl start docker
+      log_info "Docker running"
+
+      # --------------------------------------------------------
+      # Step 2.5: Assert docker data-root if we configured one
+      #
+      # When Step 0 found a /data EBS and wrote daemon.json with
+      # data-root=/data/docker, verify the daemon actually picked it up.
+      # If the daemon ignored daemon.json (apparmor profile lag, malformed
+      # JSON silently dropped on older Docker, snap-vs-apt confusion), we
+      # would silently fall back to /var/lib/docker on the root EBS — which
+      # then fills up mid-Pool-A-install and surfaces hours later as ENOSPC.
+      # Surfacing the mismatch here costs nothing and gives the operator
+      # an actionable bootstrap.err. Skipped when no /data device is present.
+      # --------------------------------------------------------
+      if [[ -n "${DATA_DEVICE:-}" ]]; then
+        CURRENT_STEP="docker-data-root-assert"
+        EXPECTED_DATA_ROOT="/data/docker"
+        # docker info prints the active root from the running daemon's
+        # config, not from daemon.json on disk — exactly what we want.
+        DOCKER_ROOT="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
+        if [[ "${DOCKER_ROOT}" != "${EXPECTED_DATA_ROOT}" ]]; then
+          log_error "Docker data-root mismatch: expected=${EXPECTED_DATA_ROOT} actual='${DOCKER_ROOT}'"
+          log_error "Likely cause: daemon.json was not honored. Inspect /etc/docker/daemon.json + journalctl -u docker."
+          {
+            printf 'failed_step=docker-data-root-mismatch\n'
+            printf 'expected=%s\n' "${EXPECTED_DATA_ROOT}"
+            printf 'actual=%s\n' "${DOCKER_ROOT}"
+          } >> "${BOOTSTRAP_ERR}"
+          exit 1
+        fi
+        log_info "Docker data-root verified: ${DOCKER_ROOT}"
+
+        # containerd's root holds the actual image layers on the
+        # containerd-snapshotter driver — far more disk-relevant than
+        # docker's own root on modern Noble. Pull the live value from
+        # the daemon (not from config.toml) via `containerd config dump`,
+        # since runtime config = compile-in defaults overlaid with file.
+        CURRENT_STEP="containerd-root-assert"
+        EXPECTED_CONTAINERD_ROOT="/data/containerd"
+        # containerd >= 2.x prints the dump with single quotes (root = '...'),
+        # older versions use double quotes (root = "..."). Use awk octal escapes
+        # for both as the field separator so we don't care which.
+        CONTAINERD_ROOT="$(containerd config dump 2>/dev/null | awk 'BEGIN{FS="[\047\042]"} /^root = / {print $2; exit}')"
+        if [[ "${CONTAINERD_ROOT}" != "${EXPECTED_CONTAINERD_ROOT}" ]]; then
+          log_error "Containerd root mismatch: expected=${EXPECTED_CONTAINERD_ROOT} actual='${CONTAINERD_ROOT}'"
+          log_error "Likely cause: /etc/containerd/config.toml was not honored. Inspect it + journalctl -u containerd."
+          {
+            printf 'failed_step=containerd-root-mismatch\n'
+            printf 'expected=%s\n' "${EXPECTED_CONTAINERD_ROOT}"
+            printf 'actual=%s\n' "${CONTAINERD_ROOT}"
+          } >> "${BOOTSTRAP_ERR}"
+          exit 1
+        fi
+        log_info "Containerd root verified: ${CONTAINERD_ROOT}"
+      fi
+
+      # --------------------------------------------------------
+      # Step 3: SSM agent (Ubuntu Noble ships snap amazon-ssm-agent)
+      # --------------------------------------------------------
+      CURRENT_STEP="ssm-agent"
+      log_info "Verifying amazon-ssm-agent"
+      if snap list amazon-ssm-agent &>/dev/null; then
+        snap start amazon-ssm-agent || true
+        snap enable amazon-ssm-agent || true
+        log_info "SSM agent (snap) enabled"
+      elif systemctl list-units --type=service | grep -q amazon-ssm-agent; then
+        systemctl enable amazon-ssm-agent
+        systemctl start amazon-ssm-agent
+        log_info "SSM agent (systemd) enabled"
+      else
+        log_warn "amazon-ssm-agent not found via snap or systemd — SSM Session Manager may not work"
+      fi
+
+      # --------------------------------------------------------
+      # Step 4: Create required directories
+      # --------------------------------------------------------
+      CURRENT_STEP="create-dirs"
+      mkdir -p /var/lib/harness /opt/harnesses
+      chown ubuntu:ubuntu /opt/harnesses
+      log_info "Directories created"
+
+      # --------------------------------------------------------
+      # Step 5: Inject operator SSH public key
+      # --------------------------------------------------------
+      CURRENT_STEP="ssh-key-inject"
+      SSH_DIR="/home/ubuntu/.ssh"
+      AUTH_KEYS="${SSH_DIR}/authorized_keys"
+
+      mkdir -p "${SSH_DIR}"
+      chmod 700 "${SSH_DIR}"
+      chown ubuntu:ubuntu "${SSH_DIR}"
+
+      SSH_KEY="${SSH_KEY_FILE_CONTENTS}"
+      if [[ -n "${SSH_KEY}" && "${SSH_KEY}" =~ ^(ssh-|ecdsa-) ]]; then
+        # Append only if not already present
+        if ! grep -qF "${SSH_KEY}" "${AUTH_KEYS}" 2>/dev/null; then
+          printf '%s\n' "${SSH_KEY}" >> "${AUTH_KEYS}"
+          log_info "Operator SSH public key injected into ${AUTH_KEYS}"
+        else
+          log_info "Operator SSH public key already present in ${AUTH_KEYS}"
+        fi
+        chmod 600 "${AUTH_KEYS}"
+        chown ubuntu:ubuntu "${AUTH_KEYS}"
+      else
+        log_warn "SSH_KEY_FILE_CONTENTS is empty or not a valid public key — SSH access via key will not work; SSM session still available"
+      fi
+
+      # --------------------------------------------------------
+      # Step 5.5: Pull team-wide operator authorized_keys from SSM (bd <ISSUE>)
+      #
+      # /sandbox/ssh-keys/operators/authorized_keys is a plain String (NOT
+      # SecureString — pubkeys aren't secret, no KMS roundtrip needed). One
+      # pubkey per line; '#' lines + blank lines tolerated. Each valid line
+      # is appended to /home/ubuntu/.ssh/authorized_keys if not already
+      # present, alongside the launcher's --ssh-key from step 5.
+      #
+      # SOFT-FAIL: if the parameter is missing or empty, log a warning and
+      # continue. The launcher's --ssh-key (step 5) + SSM Session Manager
+      # still give at least one path in. Operators register their pubkey
+      # in SSM once and it auto-flows to every future harness boot.
+      # --------------------------------------------------------
+      CURRENT_STEP="ssm-operator-authorized-keys"
+      OPERATOR_KEYS_PARAM="/sandbox/ssh-keys/operators/authorized_keys"
+      log_info "Fetching ${OPERATOR_KEYS_PARAM} from SSM (soft-fail)"
+
+      if OPERATOR_KEYS_BLOB="$(aws ssm get-parameter \
+        --name "${OPERATOR_KEYS_PARAM}" \
+        --region "${REGION}" \
+        --query 'Parameter.Value' \
+        --output text 2>/dev/null)" && [[ -n "${OPERATOR_KEYS_BLOB}" ]]; then
+        added=0
+        skipped=0
+        while IFS= read -r line; do
+          # Strip leading/trailing whitespace; drop blank + comment lines.
+          stripped="${line#"${line%%[![:space:]]*}"}"
+          stripped="${stripped%"${stripped##*[![:space:]]}"}"
+          [[ -z "${stripped}" || "${stripped:0:1}" == "#" ]] && continue
+          if [[ "${stripped}" =~ ^(ssh-|ecdsa-) ]]; then
+            if ! grep -qF "${stripped}" "${AUTH_KEYS}" 2>/dev/null; then
+              printf '%s\n' "${stripped}" >> "${AUTH_KEYS}"
+              added=$((added + 1))
+            else
+              skipped=$((skipped + 1))
+            fi
+          else
+            log_warn "Skipping malformed line in ${OPERATOR_KEYS_PARAM} (no ssh-/ecdsa- prefix)"
+          fi
+        done <<< "${OPERATOR_KEYS_BLOB}"
+        chmod 600 "${AUTH_KEYS}"
+        chown ubuntu:ubuntu "${AUTH_KEYS}"
+        log_info "Operator authorized_keys: ${added} added, ${skipped} already present"
+      else
+        log_warn "${OPERATOR_KEYS_PARAM} not in SSM or empty — only the launcher's --ssh-key will have access (file the param to enable multi-operator)"
+      fi
+
+      # --------------------------------------------------------
+      # Step 6: Pull gpu-rental SSH private key from SSM
+      # F-T1-3: Hard-fail if SSM fetch fails — harness per-model run scripts
+      # depend on this key to SSH into rented Runcrate GPUs; running without it
+      # produces unusable runs that fail mid-campaign.
+      # TODO(skipped-T2-6): pubkey sk- prefix validation deferred to future fix-pass
+      # TODO(skipped-finding): all SSM secrets must be under /sandbox/* — enforce Resource ARN
+      # --------------------------------------------------------
+      CURRENT_STEP="ssm-gpu-rental-key"
+      GPU_RENTAL_KEY_PATH="/home/ubuntu/.ssh/gpu-rental"
+      log_info "Fetching /sandbox/ssh-keys/gpu-rental/private from SSM"
+
+      if ! GPU_RENTAL_PRIVATE_KEY="$(aws ssm get-parameter \
+        --name '/sandbox/ssh-keys/gpu-rental/private' \
+        --with-decryption \
+        --region "${REGION}" \
+        --query 'Parameter.Value' \
+        --output text 2>/dev/null)"; then
+        log_error "Could not retrieve gpu-rental private key from SSM"
+        printf 'failed_step=ssm-gpu-rental-key\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      if [[ -z "${GPU_RENTAL_PRIVATE_KEY}" ]]; then
+        log_error "gpu-rental private key from SSM is empty"
+        printf 'failed_step=ssm-gpu-rental-key\nreason=empty_value\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      # Write with restrictive permissions in one atomic step
+      (
+        umask 077
+        printf '%s\n' "${GPU_RENTAL_PRIVATE_KEY}" > "${GPU_RENTAL_KEY_PATH}"
+      )
+      chown ubuntu:ubuntu "${GPU_RENTAL_KEY_PATH}"
+      chmod 600 "${GPU_RENTAL_KEY_PATH}"
+      log_info "gpu-rental private key written to ${GPU_RENTAL_KEY_PATH}"
+
+      # Add a note about Runcrate/rented-GPU SSH user convention.
+      # NOTE: SSH user on Runcrate boxes is 'root', not 'ubuntu', despite Ubuntu image.
+      # When using gpu-rental key, connect as: ssh -i ~/.ssh/gpu-rental root@<host>
+      # printf is used (not a heredoc) so this whole block lives cleanly inside the
+      # cloud-init `content: |` YAML block scalar without indentation gymnastics.
+      printf '%s\n' \
+        '' \
+        '# Rented GPU boxes (Spheron/Runcrate): SSH user is root, not ubuntu' \
+        '# See benchmarks-<CAMPAIGN> notes: "SSH user on Runcrate boxes is root"' \
+        '# Usage: ssh -i ~/.ssh/gpu-rental root@<rented-gpu-host>' \
+        'Host rented-gpu-*' \
+        '  User root' \
+        '  IdentityFile ~/.ssh/gpu-rental' \
+        '  StrictHostKeyChecking accept-new' \
+        '  UserKnownHostsFile ~/.ssh/rented_known_hosts' \
+        >> /home/ubuntu/.ssh/config
+      chown ubuntu:ubuntu /home/ubuntu/.ssh/config
+      chmod 600 /home/ubuntu/.ssh/config
+
+      # --------------------------------------------------------
+      # Step 7: Set hostname from Campaign tag (IMDSv2)
+      # F-T1-4: Hard-fail on missing Campaign tag — it is operator error to
+      # launch without this tag; surfacing it immediately avoids log-correlation
+      # issues from boxes coming up as ip-10-0-20-x.
+      # --------------------------------------------------------
+      CURRENT_STEP="hostname-from-tag"
+      log_info "Resolving Campaign tag via IMDSv2 for hostname"
+
+      # Get IMDSv2 token — required; hard-fail if unavailable
+      if ! IMDS_TOKEN="$(curl -s -X PUT \
+        'http://169.254.169.254/latest/api/token' \
+        -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')"; then
+        IMDS_TOKEN=""
+      fi
+
+      if [[ -z "${IMDS_TOKEN}" ]]; then
+        log_error "Could not get IMDSv2 token; cannot set hostname from Campaign tag"
+        printf 'failed_step=hostname-from-tag\nreason=no_imds_token\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      INSTANCE_ID="$(curl -s \
+        -H "X-aws-ec2-metadata-token: ${IMDS_TOKEN}" \
+        'http://169.254.169.254/latest/meta-data/instance-id')" || INSTANCE_ID=""
+
+      if [[ -z "${INSTANCE_ID}" ]]; then
+        log_error "Could not determine instance-id from IMDS"
+        printf 'failed_step=hostname-from-tag\nreason=no_instance_id\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      CAMPAIGN_TAG="$(aws ec2 describe-tags \
+        --filters \
+          "Name=resource-id,Values=${INSTANCE_ID}" \
+          "Name=key,Values=Campaign" \
+        --region "${REGION}" \
+        --query 'Tags[0].Value' \
+        --output text 2>/dev/null)" || CAMPAIGN_TAG=""
+
+      if [[ -z "${CAMPAIGN_TAG}" || "${CAMPAIGN_TAG}" == "None" ]]; then
+        log_error "Campaign tag not found on instance ${INSTANCE_ID} — operator must tag instance with Campaign= before launch"
+        printf 'failed_step=hostname-from-tag\nreason=missing_campaign_tag\ninstance_id=%s\n' "${INSTANCE_ID}" >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      HOSTNAME_VALUE="harness-${CAMPAIGN_TAG}"
+      hostnamectl set-hostname "${HOSTNAME_VALUE}"
+      log_info "Hostname set to ${HOSTNAME_VALUE} (Campaign=${CAMPAIGN_TAG})"
+
+      # Write to /etc/hosts for local resolution
+      if ! grep -q "${HOSTNAME_VALUE}" /etc/hosts; then
+        printf '127.0.1.1 %s\n' "${HOSTNAME_VALUE}" >> /etc/hosts
+      fi
+
+      # --------------------------------------------------------
+      # Step 8: Bedrock self-test
+      # F-T2-5: Capture stderr, 3-attempt retry with 30s backoff for transient throttling
+      # --------------------------------------------------------
+      CURRENT_STEP="bedrock-selftest"
+      log_info "Running Bedrock self-test (claude-opus-4-7)"
+
+      BEDROCK_BODY='{"messages":[{"role":"user","content":"ok"}],"max_tokens":1,"anthropic_version":"bedrock-2023-05-31"}'
+
+      BEDROCK_ATTEMPT=0
+      BEDROCK_SUCCESS=false
+      while (( BEDROCK_ATTEMPT < 3 )); do
+        # Pre-increment so first iteration goes 0->1 (returns 1, exit 0).
+        # Post-increment from 0 returns 0 = exit 1 = aborts under set -e.
+        (( ++BEDROCK_ATTEMPT ))
+        log_info "Bedrock self-test attempt ${BEDROCK_ATTEMPT}/3"
+        # AWS CLI v2 needs --cli-binary-format raw-in-base64-out to interpret
+        # --body as a raw JSON string instead of expecting base64-encoded blob.
+        BEDROCK_EXIT=0
+        BEDROCK_STDERR="$(aws bedrock-runtime invoke-model \
+          --model-id "us.anthropic.claude-opus-4-7" \
+          --body "${BEDROCK_BODY}" \
+          --content-type "application/json" \
+          --accept "application/json" \
+          --cli-binary-format raw-in-base64-out \
+          --region "${REGION}" \
+          "${BEDROCK_TEST_OUT}" \
+          2>&1 1>/dev/null)" || BEDROCK_EXIT=$?
+        if (( BEDROCK_EXIT == 0 )); then
+          BEDROCK_SUCCESS=true
+          break
+        fi
+        log_warn "Bedrock self-test attempt ${BEDROCK_ATTEMPT} failed (exit=${BEDROCK_EXIT}): ${BEDROCK_STDERR}"
+        if (( BEDROCK_ATTEMPT < 3 )); then
+          log_info "Retrying Bedrock self-test in 30s (transient throttle backoff)"
+          sleep 30
+        fi
+      done
+
+      if ! "${BEDROCK_SUCCESS}"; then
+        log_error "Bedrock invoke-model failed after 3 attempts"
+        printf 'failed_step=bedrock-selftest\nbedrock_exit=%d\nbedrock_stderr=%s\n' \
+          "${BEDROCK_EXIT:-1}" "${BEDROCK_STDERR:-unknown}" >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      if [[ ! -s "${BEDROCK_TEST_OUT}" ]]; then
+        log_error "Bedrock self-test output file is empty: ${BEDROCK_TEST_OUT}"
+        printf 'failed_step=bedrock-selftest\nreason=empty_output\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      log_info "Bedrock self-test passed (output: $(wc -c < "${BEDROCK_TEST_OUT}") bytes)"
+
+      # --------------------------------------------------------
+      # Step 8b: Gemini self-test
+      # Mirrors the Bedrock pattern: fetch key from SSM, hit a cheap
+      # read-only endpoint (models.list), 3-attempt retry, gate sentinel.
+      # Failing fast at bootstrap is much cheaper than mid-eval.
+      # --------------------------------------------------------
+      CURRENT_STEP="gemini-selftest"
+      log_info "Fetching Gemini API key from SSM"
+      GEMINI_KEY=""
+      if ! GEMINI_KEY="$(aws ssm get-parameter \
+        --name '/sandbox/api-keys/gemini' \
+        --with-decryption \
+        --region "${REGION}" \
+        --query 'Parameter.Value' \
+        --output text 2>/dev/null)"; then
+        log_error "Could not retrieve Gemini API key from SSM"
+        printf 'failed_step=gemini-selftest\nreason=ssm_fetch_failed\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+      if [[ -z "${GEMINI_KEY}" || "${GEMINI_KEY}" == "None" ]]; then
+        log_error "Gemini API key from SSM is empty"
+        printf 'failed_step=gemini-selftest\nreason=empty_key\n' >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+
+      GEMINI_ATTEMPT=0
+      GEMINI_SUCCESS=false
+      while (( GEMINI_ATTEMPT < 3 )); do
+        (( ++GEMINI_ATTEMPT ))
+        log_info "Gemini self-test attempt ${GEMINI_ATTEMPT}/3 (models.list)"
+        GEMINI_HTTP=0
+        GEMINI_HTTP="$(curl -sS -o /tmp/gemini-selftest.out -w '%{http_code}' \
+          --max-time 15 \
+          "https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_KEY}" 2>>/tmp/gemini-selftest.err)" \
+          || GEMINI_HTTP=$?
+        if [[ "${GEMINI_HTTP}" == "200" ]]; then
+          GEMINI_SUCCESS=true
+          break
+        fi
+        log_warn "Gemini self-test attempt ${GEMINI_ATTEMPT} failed (http=${GEMINI_HTTP}): $(head -c 200 /tmp/gemini-selftest.out 2>/dev/null)"
+        if (( GEMINI_ATTEMPT < 3 )); then
+          log_info "Retrying Gemini self-test in 30s"
+          sleep 30
+        fi
+      done
+
+      if ! "${GEMINI_SUCCESS}"; then
+        log_error "Gemini models.list failed after 3 attempts"
+        printf 'failed_step=gemini-selftest\ngemini_http=%s\ngemini_body=%s\n' \
+          "${GEMINI_HTTP:-0}" "$(head -c 300 /tmp/gemini-selftest.out 2>/dev/null | tr '\n' ' ')" >> "${BOOTSTRAP_ERR}"
+        exit 1
+      fi
+      log_info "Gemini self-test passed (models.list 200; $(wc -c < /tmp/gemini-selftest.out) bytes)"
+      unset GEMINI_KEY  # Drop from environment; per-run scripts re-fetch on demand
+
+      # --------------------------------------------------------
+      # Step 9: Write bootstrap.ok sentinel
+      # --------------------------------------------------------
+      CURRENT_STEP="write-sentinel"
+      AMI_ID="$(curl -s \
+        -H "X-aws-ec2-metadata-token: ${IMDS_TOKEN:-}" \
+        'http://169.254.169.254/latest/meta-data/ami-id' 2>/dev/null)" || AMI_ID="unknown"
+
+      {
+        printf 'bootstrapped_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        printf 'ami_id=%s\n' "${AMI_ID}"
+        printf 'instance_id=%s\n' "${INSTANCE_ID:-unknown}"
+        printf 'hostname=%s\n' "$(hostname)"
+        printf 'log=%s\n' "${LOG_FILE}"
+      } > "${BOOTSTRAP_OK}"
+
+      log_info "Bootstrap complete — sentinel written: ${BOOTSTRAP_OK}"
+
+# End of harness-bootstrap.sh
+
+# ============================================================
+# install-harness.sh is pushed by harness-up.sh via SSM send-command after
+# bootstrap.ok lands — see push_install_harness_via_ssm() in harness-up.sh.
+# It used to be embedded here via encoding:gz+b64 (<CAMPAIGN>), but after 2on.1-.3
+# the script + cloud-init template together exceed the 16 KB user-data cap.
+# ============================================================
+# runcmd-wrapper script: invokes the bootstrap. Lives in write_files (with
+# bash shebang + 0755) so it executes under bash, not /bin/sh (dash).
+# cloud-init's runcmd otherwise runs scripts via /bin/sh, breaking process
+# substitution `>(...)` and `[[ ]]` tests.
+# ============================================================
+  - path: /root/cloud-init-runcmd.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      exec > >(tee -a /var/log/harness-bootstrap.log) 2>&1
+      echo "[cloud-init][info][$(date -u +%Y-%m-%dT%H:%M:%SZ)] cloud-init runcmd starting"
+      echo "[cloud-init][info][$(date -u +%Y-%m-%dT%H:%M:%SZ)] starting harness-bootstrap.sh"
+      bash /root/harness-bootstrap.sh
+      echo "[cloud-init][info][$(date -u +%Y-%m-%dT%H:%M:%SZ)] harness-bootstrap.sh exited $?"
+
+# ============================================================
+# runcmd: list form so cloud-init invokes bash directly (not /bin/sh).
+# All real work is in /root/cloud-init-runcmd.sh (written above).
+# ============================================================
+runcmd:
+  - [bash, /root/cloud-init-runcmd.sh]
+
+# ============================================================
+# Final message written to cloud-init output
+# ============================================================
+final_message: |
+  Harness bootstrap cloud-init completed. Check /var/lib/harness/bootstrap.ok for success
+  or /var/lib/harness/bootstrap.err for failure details.
+  Full log: /var/log/harness-bootstrap.log

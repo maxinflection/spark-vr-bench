@@ -1,0 +1,67 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Gemma-4-26B-A4B NVFP4 on Runcrate RTXPro6000 ×1
+#
+# This is the spec validated by the 2026-05-07 spike — see bd memory
+# runcrate-rtx-pro-6000-sm120-nvfp4-spike-pass. Reuse this as the smoke spec
+# when validating rental-vllm-up.sh end-to-end.
+#
+# Operator-set fields before launch:
+#   rental_host — hostname or IP of the provisioned RTXPro6000 box
+#                 (default in bd memory: agitated-joliot-rtxpro6000-3fdb in KC)
+
+model_id: nvidia/Gemma-4-26B-A4B-NVFP4
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# NVFP4 path requires --quantization nvfp4 explicitly. Validated CUTLASS
+# backend on SM120 in the spike (NOT Marlin fallback).
+quant: nvfp4
+
+# Per spike: --tensor-parallel-size 1, NO --enable-expert-parallel (vLLM #32826).
+tensor_parallel_size: 1
+# 256K target — Gemma-4 26B-A4B native max_position_embeddings is 262144
+# (bd <ISSUE> 2026-05-18 HF config.json check). Sliding_window=1024 bounds KV
+# regardless of max_model_len cap. Per memory
+# feedback_context_length_policy_2026-05-18: target 256K, floor 128K.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# VLLM_NVFP4_GEMM_BACKEND=marlin (bd <ISSUE> 2026-05-18 workaround): on vLLM 0.21
+# the NVFP4 GEMM path JIT-compiles via FlashInfer cutlass_fp4 SM120 module
+# and our cuda-toolkit-13-0 doesn't advertise SM12.x as supported, so JIT
+# fails at engine startup. The 2026-05-07 spike that validated CUTLASS for
+# this very model used vLLM 0.20.1 prebuilt wheels (no JIT). Marlin is
+# vLLM's bundled FP4 kernel and ships without JIT, so we route around the
+# failure. Revert when a vLLM release ships SM120 prebuilt FP4 wheels.
+vllm_env:
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+# --attention-backend TRITON_ATTN: vllm#40677 reports Gemma-4 head_size
+# mismatch with FlashInfer attention on SM120 — paired workaround with
+# the Marlin GEMM env var. See the <CAMPAIGN> (Gemma 31B) spec for the lineage.
+#
+# --enable-auto-tool-choice + --tool-call-parser gemma4: bd <ISSUE> Phase 0
+# spike 2026-05-19 surfaced 'litellm.BadRequestError: "auto" tool choice
+# requires --enable-auto-tool-choice and --tool-call-parser to be set'
+# when ExploitBench's native LiteLLM client called the endpoint with
+# tool_choice=auto. The gemma4 parser ships in vLLM 0.21
+# (vllm/tool_parsers/gemma4_tool_parser.py). Gemma-4's chat template
+# (len=16934, has 'tool_call') is built for function calling — without
+# the parser flag, the server-side validation rejects auto tool choice.
+#
+# Retroactive test (campaign <CAMPAIGN>-gemma4-26b-a4b-cybergym-postvllmparser-
+# 2026-05-19): the parser does NOT rescue the OpenHands cybergym path.
+# Without parser: model emits malformed execute_bash (missing command);
+# with parser: model emits well-formed think calls exclusively, never
+# execute_bash → AgentStuckInLoopError on think→think pattern at step ~12.
+# This is a model-behavior issue (Gemma-4 26B-A4B prefers think-only
+# strategy), not a schema-mismatch issue. bd <ISSUE> (smolagents agent-switch
+# for small-MoE Pool A cells) remains the right follow-up.
+vllm_args:
+  - --attention-backend
+  - TRITON_ATTN
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - gemma4
+
+local_port: 8000

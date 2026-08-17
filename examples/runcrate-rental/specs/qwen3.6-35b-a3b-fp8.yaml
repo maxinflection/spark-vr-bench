@@ -1,0 +1,81 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Qwen3.6-35B-A3B (MoE 35B/3B-active) FP8
+#
+# Hardware (per session-handoff-2026-05-12-plan): Runcrate RTXPro6000 ×1 KC,
+# SKU agitated-joliot-rtxpro6000-3fdb ($1.97/hr, 96 GB GDDR6X). The bd memory
+# runcrate-sku-mapping-for-benchmarks-rlp-4-11 originally pencilled GH200 ×1
+# (thirsty-swirles-gh200-2c97, $1.64/hr Dulles); plan overrides to RTXPro6000.
+# 35B FP8 weights ~40 GB + KV cache → fits comfortably in either 96 GB box.
+#
+# Operator-set fields before launch:
+#   rental_host — hostname or IP of the provisioned RTXPro6000 box
+
+model_id: Qwen/Qwen3.6-35B-A3B-FP8
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# Quant: FP8 weights are recognised by vLLM auto-config; no --quantization flag
+# needed (unlike NVFP4 which does require --quantization nvfp4).
+quant: ""
+
+tensor_parallel_size: 1
+# 256K target — Qwen3.6 native context, fits in 96 GB RTXPro6000/GH200 KV
+# budget after ~40 GB FP8 weights. 128K is the absolute floor (memory
+# feedback_context_length_policy_2026-05-18).
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# Env-only knobs (no CLI flag) — wired through rental-vllm-up.sh's vllm_env
+# passthrough (bd benchmarks-<CAMPAIGN>).
+#
+# VLLM_USE_FLASHINFER_MOE_FP8=0: disables the FlashInfer FP8 MoE kernel path.
+# Per vllm#34892, that backend has a numerical-accuracy bug on FP8 MoE that
+# silently degrades quality. Falling back to the default Triton/CUTLASS MoE
+# kernel produces correct outputs.
+vllm_env:
+  VLLM_USE_FLASHINFER_MOE_FP8: "0"
+
+# vLLM serving args.
+#
+# CRITICAL (research agent 2026-05-09, validated against vllm#37714 + #39287):
+# Qwen3.x hybrid architecture has Gated Delta Networks (GDN) layers (3 GDN +
+# 1 attention per block). The GDN prefill kernel triggers FlashInfer JIT
+# compilation at startup, which requires a full CUDA SDK + working build
+# toolchain on the rental host. Runcrate's stock image only ships CUDA
+# runtime libs — JIT fails with "Could not find nvcc"-style cascades.
+#
+# Fix: --gdn-prefill-backend triton uses vLLM's bundled Triton kernel for
+# GDN, sidestepping the JIT entirely. Triton ships with vLLM/PyTorch.
+# Officially-supported fallback per vLLM PR #37507. Same as <CAMPAIGN> spec.
+#
+# --max-num-batched-tokens 2096 is REQUIRED for GDN models — Mamba cache
+# 'align' mode requires block_size <= max_num_batched_tokens, and vLLM's
+# default 8192 violates this (vllm#37714).
+#
+# --default-chat-template-kwargs '{"enable_thinking": false}' suppresses the
+# <think> preamble (server-side; covers lm-eval, litellm, and bigcodebench's
+# own openai client). Same rationale as <CAMPAIGN> (bd <ISSUE>).
+#
+# --reasoning-parser qwen3 separates thinking traces into reasoning_content,
+# leaving content clean for downstream regex extraction. May require
+# vLLM >= 0.21 — if the rental's 0.20.1 rejects the flag, drop this pair.
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --max-num-batched-tokens
+  - "2096"
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  - --reasoning-parser
+  - qwen3
+  # Tool-call parser + auto-choice (bd <ISSUE> 2026-05-19): required for any agent
+  # harness that calls the endpoint with tool_choice=auto (Pool A cybergym,
+  # ExploitBench). qwen3_xml is the streaming-capable parser for Qwen3 family.
+  - --tool-call-parser
+  - qwen3_xml
+  - --enable-auto-tool-choice
+
+# Run on harness port 8002 — <CAMPAIGN> holds 8000, <CAMPAIGN> holds 8001 — so this
+# spec can run alongside others on the same harness without port collision.
+local_port: 8002

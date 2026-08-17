@@ -1,0 +1,77 @@
+# rental-spec for benchmarks-<CAMPAIGN>: Sehyo/Qwen3.5-122B-A10B-NVFP4 on Runcrate RTXPro6000 ×2
+#
+# Provisioning (2026-05-13):
+#   Same auto-deploy path validated by <CAMPAIGN>: POST /v1/instances with
+#   {gpu_type: "RTXPro6000", gpu_count: 2}. Probe 2026-05-13 found stock in
+#   Beltsville USA at $3.94/hr (same KC price; SKU id rotates frequently —
+#   do NOT pin instance_type_id, see memory feedback_runcrate_inventory_scan.md).
+#   <CAMPAIGN> (Nemotron 3 Super NVFP4 MoE) ran clean on this hardware with stock
+#   vLLM 0.20.x and ZERO SM121-specific env vars — the <CAMPAIGN> issue's "SM121
+#   patches may be needed" warning is contradicted by that evidence. If launch
+#   fails, fall back to the JungkwanBan reference patches.
+#
+# Operator-set fields before launch:
+#   rental_host — IP of the deployed RTXPro6000 ×2 box. Easiest pattern is to
+#                 cp this spec to /var/lib/harness/rentals/<CAMPAIGN>-spec-<date>.yaml
+#                 and sed the host in there.
+
+model_id: Sehyo/Qwen3.5-122B-A10B-NVFP4
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# Sehyo packs NVFP4 weights using the `compressed-tensors` config format
+# (not the bare `nvfp4` config format that nvidia/Nemotron uses). The model's
+# config.json reports `quant_method=compressed-tensors`; passing
+# `--quantization nvfp4` is rejected with a ModelConfig validation error
+# ("Quantization method specified in the model config (compressed-tensors)
+# does not match the quantization method specified in the `quantization`
+# argument (nvfp4)"). Same underlying kernel family (CUTLASS NVFP4 grouped-
+# GEMM) — only the metadata wrapper differs.
+quant: compressed-tensors
+
+# 122B total / 10B active params. ~71 GB weights — fits comfortably in
+# 192 GB total VRAM across 2× 96 GB RTXPro6000 with plenty of KV headroom.
+# --enable-expert-parallel must stay OFF (vLLM #32826 reproduces on
+# RTXPro6000 in EP mode; consistent with <CAMPAIGN>, <CAMPAIGN>).
+tensor_parallel_size: 2
+# 256K target — Qwen3.5 native context (via YaRN) is 256K. On RTXPro6000 ×2
+# (192 GB total) with ~71 GB NVFP4 weights and TP=2 KV sharding, a single
+# max-length seq needs ~32 GB/GPU KV, comfortably within the ~60 GB/GPU
+# free-after-weights budget. Per memory feedback_context_length_policy_2026-05-18:
+# target 256K when models + KV fit; 128K is the absolute floor.
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# VLLM_NVFP4_GEMM_BACKEND=marlin (bd <ISSUE> 2026-05-18): vLLM 0.21 JIT-compiles
+# the NVFP4 CUTLASS SM120 kernel via FlashInfer, which fails on our nvcc.
+# Marlin avoids the JIT entirely. See gemma-4-31b-it-nvfp4.yaml for the
+# full lineage and the open FlashInfer issues #2577/#2723.
+vllm_env:
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+# Qwen3.5 chat template defaults enable_thinking=true (same as Qwen3.6 and
+# Nemotron). Baking enable_thinking=false at vLLM launch via
+# --default-chat-template-kwargs is more robust than the per-request
+# extra_body path (no quoting risk through tmux→bash; see memory
+# feedback_tmux_json_args.md). The --reasoning-parser qwen3 flag separates
+# any escaped reasoning_content from message.content (matches <CAMPAIGN> spec).
+# --gdn-prefill-backend triton is required for Qwen3-arch GDN attention on
+# vLLM ≥0.20.
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": false}'
+  - --reasoning-parser
+  - qwen3
+  # Tool-call parser + auto-choice (bd <ISSUE> 2026-05-19): required for any agent
+  # harness that calls the endpoint with tool_choice=auto (Pool A cybergym,
+  # ExploitBench). qwen3_xml is the streaming-capable parser for Qwen3 family.
+  - --tool-call-parser
+  - qwen3_xml
+  - --enable-auto-tool-choice
+
+local_port: 8001  # <CAMPAIGN> used 8000; this avoids port collision if the <CAMPAIGN>
+                  # tunnel is still around (it isn't, but defensive).

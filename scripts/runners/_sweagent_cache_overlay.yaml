@@ -1,0 +1,23 @@
+# SWE-agent config overlay — restore Anthropic prompt-cache breakpoints on the
+# Pro/SWE-agent path (bd benchmarks-3xi.2.2, Phase 2).
+#
+# The Phase-1 Pro smoke used config/tool_use.yaml, which sets NO history_processors
+# and therefore falls back to DefaultHistoryProcessor (a pass-through that adds NO
+# cache_control) => ZERO prompt caching => O(turns^2) input cost on long-horizon
+# Pro tasks. This is exactly the regime the Phase-2 cache gate exists to catch.
+#
+# This overlay restores the cache_control history processor that EVERY canonical
+# SWE-agent Anthropic config ships (config/default.yaml,
+# config/benchmarks/250225_anthropic_filemap_simple_review.yaml, etc.). It is a
+# SUBSTRATE fix, not a scaffold swap — the scaffold stays SWE-agent (Pro's
+# leaderboard-faithful scaffold). Passed as a second --config; SWE-agent
+# deep-merges it over tool_use.yaml (merge_nested_dicts in run/common.py), and
+# since tool_use.yaml omits history_processors the key is simply set here.
+#
+# last_n_messages: 2 is the canonical multi-turn value: SWE-agent marks the last
+# 2 user/tool messages with cache_control {type: ephemeral}, extending the cached
+# prefix each turn so the growing transcript is served from cache (~95-99% APC).
+agent:
+  history_processors:
+    - type: cache_control
+      last_n_messages: 2

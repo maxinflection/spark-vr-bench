@@ -1,0 +1,62 @@
+# rental-spec for benchmarks-<CAMPAIGN> (thinking-on companion under bd <CAMPAIGN>):
+# Qwen/Qwen3.6-27B-FP8 with enable_thinking=true.
+#
+# Companion to qwen3.6-27b-fp8.yaml (the thinking-off baseline that gave the
+# current ᵗ-marked Pool B cells 0.878 / 0.861 / 0.304). Used by the <CAMPAIGN>
+# thinking-mode realism epic to measure the paired delta on HE+/IFEval/BCB-H
+# per thinking-mode-policy-2026-05-19.
+#
+# Prerequisites (validated 2026-05-24):
+#   - bd <CAMPAIGN> None-tolerance landed (run-pool-b.sh post-generate sample
+#     filter + bigcodebench/sanitize.py GENERATE-phase patch via bd <ISSUE>).
+#   - VLLM_BCB_MAX_TOKENS=16384 default (commit 21ed61b).
+#   - HE+/IFEval max_gen_toks lifted to 16K (commit 7345bde, bd <ISSUE>).
+#
+# Hardware: Runcrate RTXPro6000 ×1 ($1.97/hr). Same SKU as thinking-off twin.
+# 27B FP8 weights ~30 GB fit comfortably in 96 GB with 256K KV margin.
+#
+# Operator-set fields before launch:
+#   rental_host — hostname/IP of the provisioned RTXPro6000 box.
+
+model_id: Qwen/Qwen3.6-27B-FP8
+rental_host: REPLACE-ME-WITH-ACTUAL-RENTAL-HOSTNAME-OR-IP
+rental_user: root
+
+# Quant: FP8 weights are recognised by vLLM auto-config; no --quantization flag
+# needed (unlike NVFP4 which does require --quantization nvfp4).
+quant: ""
+
+tensor_parallel_size: 1
+# 256K target per feedback_context_length_policy_2026-05-18 — gives thinking
+# generations the headroom they need (long <think> blocks on BCB-Hard).
+max_model_len: 262144
+
+vllm_min_version: "0.21.0"
+
+# vLLM serving args.
+#
+# Qwen3.x hybrid GDN architecture — same kernel-set as the thinking-off twin
+# (--gdn-prefill-backend triton + --max-num-batched-tokens 2096 per vllm#37714).
+# Only difference vs the thinking-off spec is enable_thinking=TRUE.
+#
+# --reasoning-parser qwen3 KEPT (and required) on the thinking-on path: it
+# splits <think>...</think> blocks into .reasoning_content so .content stays
+# clean for Pool B graders (lm-eval-harness / bigcodebench openai clients).
+#
+# --tool-call-parser qwen3_xml (NOT hermes — that's only for Qwen3-235B-
+# Thinking-2507 per qwen3-thinking-hermes-parser-2026-05-20).
+vllm_args:
+  - --gdn-prefill-backend
+  - triton
+  - --max-num-batched-tokens
+  - "2096"
+  - --enable-prefix-caching
+  - --default-chat-template-kwargs
+  - '{"enable_thinking": true}'
+  - --reasoning-parser
+  - qwen3
+  - --tool-call-parser
+  - qwen3_xml
+  - --enable-auto-tool-choice
+
+local_port: 8001  # thinking-on lane; thinking-off twin uses 8000

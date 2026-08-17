@@ -1,0 +1,131 @@
+{
+  "inflation_threshold": 1.5,
+  "operating_points": [
+    {
+      "label": "probe",
+      "output_tokens": 400,
+      "baseline_c1_wall_s": 55.75448097102344,
+      "safe_n": 8,
+      "verdict": "EC2-bound: one Spark serves c8+ freely \u2014 scale cheap harness boxes",
+      "rows": [
+        {
+          "n": 1,
+          "per_turn_wall_s": 55.75448097102344,
+          "decode_tok_s": 9.320853293942164,
+          "wall_inflation_vs_c1": 1.0,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 2,
+          "per_turn_wall_s": 56.193139360519126,
+          "decode_tok_s": 8.359098905163185,
+          "wall_inflation_vs_c1": 1.0078676795453205,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 3,
+          "per_turn_wall_s": 45.402151393005624,
+          "decode_tok_s": 8.864455855036642,
+          "wall_inflation_vs_c1": 0.8143229136435133,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 4,
+          "per_turn_wall_s": 47.57353731209878,
+          "decode_tok_s": 8.505630368126056,
+          "wall_inflation_vs_c1": 0.8532684097054649,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 6,
+          "per_turn_wall_s": 76.26186090358533,
+          "decode_tok_s": 6.421444536915956,
+          "wall_inflation_vs_c1": 1.3678158163326806,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 8,
+          "per_turn_wall_s": 80.29797562398016,
+          "decode_tok_s": 6.031086901508134,
+          "wall_inflation_vs_c1": 1.4402066744323636,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 12,
+          "per_turn_wall_s": 111.93856552988291,
+          "decode_tok_s": 3.623728230443878,
+          "wall_inflation_vs_c1": 2.0077052746318147,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": false
+        },
+        {
+          "n": 16,
+          "per_turn_wall_s": 101.99930988391861,
+          "decode_tok_s": 4.006711150948963,
+          "wall_inflation_vs_c1": 1.8294369906685959,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": false
+        }
+      ]
+    },
+    {
+      "label": "verbose",
+      "output_tokens": 4000,
+      "baseline_c1_wall_s": 433.41639671404846,
+      "safe_n": 8,
+      "verdict": "EC2-bound: one Spark serves c8+ freely \u2014 scale cheap harness boxes",
+      "rows": [
+        {
+          "n": 1,
+          "per_turn_wall_s": 433.41639671404846,
+          "decode_tok_s": 9.232933909179192,
+          "wall_inflation_vs_c1": 1.0,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 2,
+          "per_turn_wall_s": 434.24489767698105,
+          "decode_tok_s": 9.216457391915185,
+          "wall_inflation_vs_c1": 1.001911558882437,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 4,
+          "per_turn_wall_s": 476.19253170199227,
+          "decode_tok_s": 8.406774123055994,
+          "wall_inflation_vs_c1": 1.0986952392947096,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        },
+        {
+          "n": 8,
+          "per_turn_wall_s": 565.489832779509,
+          "decode_tok_s": 7.082829750060185,
+          "wall_inflation_vs_c1": 1.3047264410547845,
+          "num_preemptions": 0.0,
+          "turns_failed": 0,
+          "within_safe": true
+        }
+      ]
+    }
+  ]
+}

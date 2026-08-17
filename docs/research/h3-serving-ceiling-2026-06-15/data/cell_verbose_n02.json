@@ -1,0 +1,60 @@
+{
+  "config": {
+    "base_url": "http://127.0.0.1:8080",
+    "model": "gemma-4-31b-nvfp4",
+    "n": 2,
+    "turns": 1,
+    "output_tokens": 4000,
+    "resident_ctx_tokens": 16000,
+    "turn_tokens": 256,
+    "inter_turn_gap": 0.0,
+    "temperature": 0.0,
+    "ignore_eos": true,
+    "shared_system_prefix": false,
+    "api_key": null,
+    "request_timeout": 2400.0,
+    "metrics": true,
+    "metrics_interval": 2.0,
+    "include_raw": false
+  },
+  "wall_total_s": 434.2476928641554,
+  "client": {
+    "turns_total": 2,
+    "turns_ok": 2,
+    "turns_failed": 0,
+    "ttft_s": {
+      "median": 0.23865971493069082,
+      "p95": 0.23947067799745128,
+      "min": 0.23775864485651255,
+      "max": 0.2395607850048691,
+      "mean": 0.23865971493069082
+    },
+    "per_stream_decode_tok_s": {
+      "median": 9.216457391915185,
+      "p95": 9.21646412970702,
+      "min": 9.216449905479811,
+      "max": 9.216464878350557,
+      "mean": 9.216457391915185
+    },
+    "per_turn_wall_s": {
+      "median": 434.24489767698105,
+      "p95": 434.2460259250482,
+      "min": 434.2436440680176,
+      "max": 434.2461512859445,
+      "mean": 434.24489767698105
+    },
+    "errors": []
+  },
+  "server_metrics": {
+    "samples": 217,
+    "peak_gpu_cache_usage_perc": 0.0,
+    "peak_num_requests_running": 2.0,
+    "peak_num_requests_waiting": 0.0,
+    "available": true,
+    "num_preemptions_delta": 0.0,
+    "prefix_cache_hits_delta": 33280.0,
+    "prefix_cache_queries_delta": 33305.0,
+    "prefix_cache_hit_rate": 0.999249361957664
+  },
+  "cell_wall_s": 434.2594420791138
+}
